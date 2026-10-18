@@ -34,6 +34,7 @@ import * as board from "../api/board.js";
 import * as preview from "../api/preview.js";
 import * as register from "../api/register.js";
 import * as participation from "../api/participation.js";
+import * as progression from "../api/progression.js";
 import { DEFAULT_SITE_URL } from "../shared/brand.js";
 import { applySeo, originFromHtml, seoDocument } from "../shared/seo.js";
 import * as portfolio from "../api/portfolio.js";
@@ -77,6 +78,7 @@ const routes: Record<string, Record<string, Handler | undefined>> = {
   preview: preview as Record<string, Handler>,
   register: register as Record<string, Handler>,
   participation: participation as Record<string, Handler>,
+  progression: progression as Record<string, Handler>,
   portfolio: portfolio as Record<string, Handler>,
   "portfolio-github": portfolioGithub as Record<string, Handler>,
   "portfolio-upload": portfolioUpload as Record<string, Handler>,

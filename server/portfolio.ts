@@ -1,6 +1,7 @@
 import type { GitHubProfile } from "../shared/community.js";
 import { defaultPortfolio, publicPortfolio, type PortfolioEditorState, type PortfolioRecord } from "../shared/portfolio.js";
 import { parsePortfolio, PortfolioValidationError } from "../shared/portfolio-validation.js";
+import { awardPortfolioAchievement } from "./board.js";
 import { getCommunityStore } from "./community-store.js";
 import { getStore } from "./db.js";
 import { githubProfile } from "./github-auth.js";
@@ -45,6 +46,20 @@ export function portfolioEditorState(profile: GitHubProfile, record: PortfolioRe
   };
 }
 
+/**
+ * Records the portfolio achievement once a portfolio is published. A storage
+ * hiccup must not fail a publish that already landed, so the error is swallowed
+ * and retried the next time the owner's state is read.
+ */
+export async function syncPortfolioAchievement(login: string, record: PortfolioRecord | null): Promise<void> {
+  if (!record?.publishedAt) return;
+  try {
+    await awardPortfolioAchievement(getStore(), login);
+  } catch (error) {
+    console.error("Portfolio achievement award failed", error);
+  }
+}
+
 export async function savePortfolio(profile: GitHubProfile, input: unknown): Promise<PortfolioEditorState> {
   const body = input as { action?: unknown; content?: unknown; version?: unknown } | null;
   if (!body || !["save", "publish", "unpublish"].includes(String(body.action)) || !Number.isSafeInteger(body.version) || Number(body.version) < 0) throw new HttpError(400, "portfolio_action", "Choose whether to save, publish or unpublish your portfolio.");
@@ -61,6 +76,7 @@ export async function savePortfolio(profile: GitHubProfile, input: unknown): Pro
       }
     }
     const record = await store.write(profile.id, profile.login, content, Number(body.version), body.action as "save" | "publish" | "unpublish");
+    if (body.action === "publish") await syncPortfolioAchievement(profile.login, record);
     return portfolioEditorState(profile, record);
   } catch (error) {
     if (error instanceof PortfolioValidationError) throw new HttpError(400, "portfolio_invalid", error.message, error.field);

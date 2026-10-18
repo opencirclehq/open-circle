@@ -56,6 +56,14 @@ export class PostgresStore implements Store {
     );
   }
 
+  async mergeAchievements(login: string, awards: Record<string, number>): Promise<void> {
+    if (Object.keys(awards).length === 0) return;
+    await this.pool.query(
+      "UPDATE opencircle_members SET record = jsonb_set(record, '{achievements}', $2::jsonb || coalesce(record->'achievements', '{}'::jsonb)) WHERE login = $1",
+      [login, JSON.stringify(awards)],
+    );
+  }
+
   async deleteMember(login: string): Promise<void> {
     await this.pool.query("DELETE FROM opencircle_members WHERE login = $1", [login]);
   }

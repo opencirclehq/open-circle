@@ -3,7 +3,7 @@ import { requireSameOriginJson } from "../server/community.js";
 import { json, readJson } from "../server/http.js";
 import { MAX_PORTFOLIO_BYTES } from "../shared/portfolio.js";
 import { getPortfolioStore } from "../server/portfolio-store.js";
-import { PORTFOLIO_HEADERS, portfolioEditorState, portfolioRateLimit, readPublicPortfolio, requirePortfolioOrigin, requirePortfolioOwner, savePortfolio } from "../server/portfolio.js";
+import { PORTFOLIO_HEADERS, portfolioEditorState, portfolioRateLimit, readPublicPortfolio, requirePortfolioOrigin, requirePortfolioOwner, savePortfolio, syncPortfolioAchievement } from "../server/portfolio.js";
 import { clientKey } from "../server/rate-limit.js";
 
 export function GET(req: Request): Promise<Response> {
@@ -14,7 +14,9 @@ export function GET(req: Request): Promise<Response> {
       return json(await readPublicPortfolio(slug.toLowerCase()), 200, { "cache-control": "no-store" });
     }
     const profile = await requirePortfolioOwner(req);
-    return json(portfolioEditorState(profile, await getPortfolioStore().readOwner(profile.id)), 200, PORTFOLIO_HEADERS);
+    const record = await getPortfolioStore().readOwner(profile.id);
+    await syncPortfolioAchievement(profile.login, record);
+    return json(portfolioEditorState(profile, record), 200, PORTFOLIO_HEADERS);
   });
 }
 

@@ -49,7 +49,8 @@
 .pf-location { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--pf-muted); margin-top: 16px; }
 .pf-skills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 25px; list-style: none; padding: 0; }
 .pf-skills li { padding: 6px 11px; font-size: 11px; border-radius: 7px; background: var(--pf-soft); color: var(--pf-muted); }
-.pf-work, .pf-about { margin-top: 70px; }
+.pf-work, .pf-about, .pf-progress { margin-top: 70px; }
+.pf-progress { max-width: 72ch; }
 .pf-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
 .pf h2 { font-size: 24px; line-height: 1.3; font-weight: 450; letter-spacing: -.035em; }
 .pf-section-heading > span { font-size: 11px; color: var(--pf-muted); }
@@ -113,7 +114,7 @@
   .pf-availability { font-size: 10px; padding-inline: 8px; max-width: 185px; }
   .pf h1 { font-size: clamp(32px, 8cqi, 48px); }
   .pf-bio { font-size: 14px; }
-  .pf-work, .pf-about { margin-top: 48px; }
+  .pf-work, .pf-about, .pf-progress { margin-top: 48px; }
   .pf-projects { grid-template-columns: 1fr; gap: 30px; }
   .pf-project-visual { aspect-ratio: 1.65; }
   .pf-project-art > span { font-size: 30px; }

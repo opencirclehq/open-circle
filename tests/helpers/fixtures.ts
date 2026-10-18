@@ -121,6 +121,16 @@ export function githubOwner(overrides: Record<string, unknown> = {}) {
   };
 }
 
+export function contributionCalendar(days: Record<string, number>) {
+  return {
+    contributionCalendar: {
+      weeks: [{
+        contributionDays: Object.entries(days).map(([date, contributionCount]) => ({ date, contributionCount })),
+      }],
+    },
+  };
+}
+
 export function githubJson(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }

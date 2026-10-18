@@ -22,6 +22,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { usePageMeta } from "@/hooks/use-page-meta";
 import { ApiError } from "@/lib/api";
 import { portfolioApi } from "@/lib/portfolio-api";
+import { progressionApi } from "@/lib/progression-api";
 import { CONTACT_KINDS, CONTACT_LABELS, PORTFOLIO_ACCENTS, defaultPortfolio, portfolioHostname, type ContactKind, type PortfolioContent, type PortfolioEditorState, type PublicPortfolio } from "@shared/portfolio";
 import { parsePortfolio } from "@shared/portfolio-validation";
 import { BRAND_NAME } from "@shared/brand";
@@ -71,6 +72,7 @@ export function PortfolioEditor({ initial }: { initial: PortfolioEditorState }) 
   const [errorField, setErrorField] = useState<string | null>(null);
   const dirty = JSON.stringify(content) !== savedContent;
   const queryKey = ["portfolio-editor", initial.profile.id];
+  const progression = useQuery({ queryKey: ["progression", initial.profile.login.toLowerCase()], queryFn: ({ signal }) => progressionApi.member(initial.profile.login, signal), enabled: initial.publishedAt != null, retry: false, staleTime: 60_000, refetchOnWindowFocus: false });
   const error = (failure: Error) => { setErrorField(failure instanceof ApiError ? failure.field ?? null : null); toast.error(failure.message, { id: "portfolio-error" }); };
   const save = useMutation({ mutationFn: (action: "save" | "publish" | "unpublish") => portfolioApi.save(action, content, saved.version), onSuccess: (next, action) => {
     setSaved(next);
@@ -158,7 +160,7 @@ export function PortfolioEditor({ initial }: { initial: PortfolioEditorState }) 
       </TabsContent>
     </fieldset>
     {saved.publishedAt && <div className="studio-editor-footer"><span>Published</span><button type="button" disabled={busy} onClick={() => setDialog("unpublish")}>Unpublish</button></div>}
-    </div><aside className="studio-preview" aria-label="Live portfolio preview"><div className="studio-preview-toolbar"><span>Preview</span><div className="studio-preview-switch" role="group" aria-label="Preview size"><button type="button" aria-label="Desktop preview" aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")}><MonitorIcon className="size-4" aria-hidden /></button><button type="button" aria-label="Mobile preview" aria-pressed={device === "mobile"} onClick={() => setDevice("mobile")}><SmartphoneIcon className="size-4" aria-hidden /></button></div></div><div className="studio-preview-frame" data-device={device}><PortfolioView portfolio={preview} preview /></div></aside></div></Tabs>
+    </div><aside className="studio-preview" aria-label="Live portfolio preview"><div className="studio-preview-toolbar"><span>Preview</span><div className="studio-preview-switch" role="group" aria-label="Preview size"><button type="button" aria-label="Desktop preview" aria-pressed={device === "desktop"} onClick={() => setDevice("desktop")}><MonitorIcon className="size-4" aria-hidden /></button><button type="button" aria-label="Mobile preview" aria-pressed={device === "mobile"} onClick={() => setDevice("mobile")}><SmartphoneIcon className="size-4" aria-hidden /></button></div></div><div className="studio-preview-frame" data-device={device}><PortfolioView portfolio={preview} preview progression={progression.data} /></div></aside></div></Tabs>
     </main></form>
     <Dialog open={dialog !== null} onOpenChange={(open) => { if (!open && !busy) setDialog(null); }}><DialogContent className="studio-repo-dialog max-w-md"><DialogTitle>{dialog === "publish" ? saved.publishedAt ? "Publish your changes?" : "Ready to share your work?" : dialog === "unpublish" ? "Take your portfolio offline?" : dialog === "import" ? "Replace your README?" : "Leave your unsaved changes?"}</DialogTitle><DialogDescription>{dialog === "publish" ? "Your profile, selected work and public contacts will be visible to anyone with your link." : dialog === "unpublish" ? "Visitors won't be able to see your page. Your saved draft and address stay yours." : dialog === "import" ? "The imported README will replace what you've written here. You can edit it before saving." : "The changes you've made since your last save will be lost."}</DialogDescription>
       {dialog === "publish" && <div className="space-y-3 rounded-2xl bg-foreground/[.04] p-4"><p className="break-all text-sm">{portfolioHostname(content.slug)}</p><p className="text-xs text-t3">{content.projects.length} selected {content.projects.length === 1 ? "repository" : "repositories"}</p><p className="text-xs text-t3">Public contacts: {visibleContacts.length ? visibleContacts.map((contact) => CONTACT_LABELS[contact.kind]).join(", ") : "none"}</p>{!saved.subdomainsAvailable && <p className="text-xs leading-relaxed text-t3">Your page will have a shareable link. Your subdomain will become available when domain setup is complete.</p>}</div>}

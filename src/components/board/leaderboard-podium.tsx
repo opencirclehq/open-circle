@@ -1,6 +1,6 @@
 import type { RankingPeriod } from "@shared/coordination";
 import type * as React from "react";
-import { CrownStarIcon, StarIcon, UserPlusRoundedIcon } from "@solar-icons/react/bold-duotone";
+import { CrownStarIcon, FireIcon, StarIcon, UserPlusRoundedIcon } from "@solar-icons/react/bold-duotone";
 import { AnimatePresence, motion } from "motion/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { diceBearAvatarUrl, formatCount, formatFull, formatHelpDetail } from "@/lib/format";
@@ -22,6 +22,7 @@ export type LeaderboardEntry = {
   helpfulContributions?: number;
   starHelps?: number;
   helpedMembers?: number;
+  currentStreak?: number;
   href: string;
   /** The member's GitHub avatar; DiceBear stands in when it's missing. */
   avatarUrl?: string;
@@ -93,6 +94,11 @@ function PodiumSlot({
               </span>
               {entry.helpfulContributions !== undefined && <span className="mt-1 max-w-full truncate text-[10px] text-t3 tabular sm:text-xs" title={formatHelpDetail(entry, entry.period)}>
                 {formatCount(entry.helpfulContributions + (entry.starHelps ?? 0))} helps · {formatCount(entry.starHelps ?? 0)} stars given
+              </span>}
+              {(entry.currentStreak ?? 0) >= 2 && <span className="mt-0.5 inline-flex max-w-full items-center gap-0.5 text-[10px] text-t3 tabular sm:text-xs" title={`${formatFull(entry.currentStreak ?? 0)}-day activity streak`}>
+                <FireIcon size={11} aria-hidden />
+                {formatCount(entry.currentStreak ?? 0)}
+                <span className="sr-only"> day activity streak</span>
               </span>}
               <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-t3 tabular sm:mt-1 sm:text-xs">
                 {entry.secondary?.icon ?? <StarIcon size={11} aria-hidden />}

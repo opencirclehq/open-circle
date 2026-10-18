@@ -20,6 +20,16 @@ import {
   parseNickname,
   parseWhatsappNumber,
 } from "../shared/validation.js";
+import {
+  ACHIEVEMENT_IDS,
+  computeStreaks,
+  evaluateAchievements,
+  mergeActivityDays,
+  nextGoals,
+  utcDay,
+  type MemberProgression,
+  type ProgressionSignals,
+} from "../shared/progression.js";
 import { GithubError, lookupMany, lookupOne, type Lookup } from "./github.js";
 import { HttpError } from "./http.js";
 import { getCommunityStore } from "./community-store.js";
@@ -64,10 +74,29 @@ function statsFields(stats: GithubStats): Partial<MemberRecord> {
     repos: stats.repos,
     activity: stats.activity,
     activitySince: stats.activitySince,
+    reviews: stats.reviews ?? 0,
+    issues: stats.issues ?? 0,
     projects: stats.projects ?? [],
     starredRepositories: stats.starredRepositories ?? [],
     starSupportUpdatedAt: Date.now(),
     starHistoryVersion: stats.starHistoryVersion ?? 0,
+  };
+}
+
+/** The verified signals a member record contributes to achievement checks. */
+function progressionSignals(record: MemberRecord, extra: Partial<ProgressionSignals> = {}): ProgressionSignals {
+  return {
+    activityDays: record.activityDays ?? [],
+    longestStreak: record.longestStreak ?? 0,
+    // A stored activity total only counts once it covers the member's whole
+    // life on the board; otherwise it predates them and must not award.
+    contributions: record.activitySince === contributionStart(record.createdAt) ? record.activity : 0,
+    helpedMembers: record.helpedMembers,
+    reviews: record.reviews,
+    issues: record.issues,
+    stars: record.stars,
+    followers: record.followers,
+    ...extra,
   };
 }
 
@@ -116,6 +145,27 @@ export async function rebuildBoard(
     }
   }
 
+  const today = utcDay(now);
+  await Promise.all(records.map(async (record) => {
+    const days = mergeActivityDays(record.activityDays);
+    const { current, longest, start } = computeStreaks(days, today, record.longestStreak, record.streakStart);
+    const earned = evaluateAchievements(
+      progressionSignals(record, { activityDays: days, longestStreak: longest }),
+      record.achievements,
+      now,
+    );
+    const awards: Record<string, number> = {};
+    for (const [id, at] of Object.entries(earned)) if (!(id in (record.achievements ?? {}))) awards[id] = at;
+    const patch: Partial<MemberRecord> = {};
+    if (days.length !== (record.activityDays?.length ?? 0)) patch.activityDays = days;
+    if (current !== (record.currentStreak ?? 0)) patch.currentStreak = current;
+    if (longest !== (record.longestStreak ?? 0)) patch.longestStreak = longest;
+    if (start !== (record.streakStart ?? "")) patch.streakStart = start;
+    if (Object.keys(patch).length > 0) await store.patchMember(record.login, patch);
+    if (Object.keys(awards).length > 0) await store.mergeAchievements(record.login, awards);
+    Object.assign(record, patch, { achievements: { ...awards, ...(record.achievements ?? {}) } });
+  }));
+
   const visibleLogins = new Set(records.filter((record) => !record.hidden).map((record) => record.login.toLowerCase()));
   const rankedFor = (period: RankingPeriod) => records
     .filter((m) => !m.hidden)
@@ -133,6 +183,14 @@ export async function rebuildBoard(
       compareStanding({ ...a.m, score: a.score }, { ...b.m, score: b.score }),
     );
   const ranked = rankedFor("all");
+
+  const achievementCounts: Record<string, number> = {};
+  for (const id of ACHIEVEMENT_IDS) achievementCounts[id] = 0;
+  for (const record of records) {
+    if (record.hidden) continue;
+    for (const id of Object.keys(record.achievements ?? {}))
+      if (id in achievementCounts) achievementCounts[id] += 1;
+  }
 
   const writes: Promise<void>[] = [];
   const members: PublicMember[] = ranked.map(({ m, score }, i) => {
@@ -170,6 +228,9 @@ export async function rebuildBoard(
       rank,
       delta: recent ? prevRank - rank : 0,
       isNew: now - m.createdAt < NEW_WINDOW_MS,
+      currentStreak: m.currentStreak ?? 0,
+      longestStreak: m.longestStreak ?? 0,
+      achievements: Object.keys(m.achievements ?? {}),
     };
   });
 
@@ -222,6 +283,7 @@ export async function rebuildBoard(
     communityRepositoryDelayed: opts.communityRepositoryDelayed ?? previous?.communityRepositoryDelayed ?? true,
     members,
     repositories,
+    achievementCounts,
     updatedAt: now,
     refreshedAt: opts.refreshedAt ?? previous?.refreshedAt ?? now,
     statsDelayed: ranked.some(({ m }) => m.activitySince !== contributionStart(m.createdAt) || !m.starSupportUpdatedAt || m.starHistoryVersion !== 2) || (opts.statsDelayed ?? previous?.statsDelayed ?? false),
@@ -230,6 +292,52 @@ export async function rebuildBoard(
   };
   await store.setBoard(board);
   return board;
+}
+
+/**
+ * One member's verified progression for the detail dialog and portfolio.
+ * Hidden members have no public progression, so they read as missing.
+ */
+export async function readProgression(store: Store, login: string): Promise<MemberProgression | null> {
+  const records = await store.listMembers();
+  const record = records.find((m) => m.login === login.toLowerCase());
+  if (!record || record.hidden) return null;
+  const now = Date.now();
+  const today = utcDay(now);
+  const days = mergeActivityDays(record.activityDays);
+  const { current, longest } = computeStreaks(days, today, record.longestStreak, record.streakStart);
+  const counts: Record<string, number> = {};
+  for (const id of ACHIEVEMENT_IDS) counts[id] = 0;
+  for (const m of records) {
+    if (m.hidden) continue;
+    for (const id of Object.keys(m.achievements ?? {}))
+      if (id in counts) counts[id] += 1;
+  }
+  return {
+    login: record.displayLogin,
+    nickname: record.nickname,
+    currentStreak: current,
+    longestStreak: longest,
+    achievements: record.achievements ?? {},
+    activityDays: days,
+    counts,
+    total: records.filter((m) => !m.hidden).length,
+    goals: nextGoals(progressionSignals(record, { activityDays: days, longestStreak: longest }), record.achievements, now),
+  };
+}
+
+/**
+ * Grants the portfolio achievement when a member publishes their portfolio.
+ * Members who never published before this feature existed pick it up on their
+ * next publish. No-op for portfolio owners who aren't on the board.
+ */
+export async function awardPortfolioAchievement(store: Store, login: string): Promise<void> {
+  const record = await store.getMember(login.toLowerCase());
+  if (!record) return;
+  const earned = evaluateAchievements(progressionSignals(record, { hasPortfolio: true }), record.achievements);
+  const awards: Record<string, number> = {};
+  for (const [id, at] of Object.entries(earned)) if (!(id in (record.achievements ?? {}))) awards[id] = at;
+  if (Object.keys(awards).length > 0) await store.mergeAchievements(record.login, awards);
 }
 
 async function refreshStats(store: Store): Promise<Board> {
@@ -262,6 +370,7 @@ async function refreshStats(store: Store): Promise<Board> {
         if (r?.kind === "user")
           return store.patchMember(m.login, {
             ...statsFields(r.stats),
+            activityDays: mergeActivityDays(m.activityDays, r.stats.activityDays),
             statsUpdatedAt: now,
           });
         // Renamed or deleted on GitHub: keep the last known numbers; admin can remove them.
@@ -443,6 +552,9 @@ export async function register(
     repos: stats.repos,
     activity: stats.activity,
     activitySince: stats.activitySince,
+    reviews: stats.reviews ?? 0,
+    issues: stats.issues ?? 0,
+    activityDays: mergeActivityDays([], stats.activityDays),
     projects: stats.projects ?? [],
     starredRepositories: stats.starredRepositories ?? [],
     starSupportUpdatedAt: now,

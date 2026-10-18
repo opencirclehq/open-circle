@@ -7,7 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { diceBearAvatarUrl, formatCount, formatFull, formatHelpDetail, githubUrl, rankingPeriodLabels } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Movement } from "./movement";
+import { MemberProgressionDialog } from "./member-progression-dialog";
+import { ProgressionBadges } from "./progression-badges";
 import { useTheme } from "@/hooks/use-theme";
+
+function hasProgression(member: PublicMember): boolean {
+  return (member.currentStreak ?? 0) >= 2 || (member.achievements?.length ?? 0) > 0;
+}
 
 // Phone: rank · member · score. From md up, every column in PRD §11.3 order.
 const GRID =
@@ -18,12 +24,16 @@ function Row({
   index,
   isMe,
   flash,
+  counts,
+  total,
   period,
 }: {
   member: PublicMember;
   index: number;
   isMe: boolean;
   flash: boolean;
+  counts?: Record<string, number>;
+  total?: number;
   period: RankingPeriod;
 }) {
   const { resolvedTheme } = useTheme();
@@ -51,12 +61,12 @@ function Row({
         <Movement delta={member.delta} isNew={member.isNew} className="mt-1 text-[10px] md:hidden" />
       </div>
 
-      <div role="cell" className="min-w-0">
+      <div role="cell" className="flex min-w-0 items-center gap-1.5">
         <a
           href={githubUrl(member.login)}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg"
+          className="group flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg"
         >
           <Avatar className="size-6 shrink-0 min-[400px]:size-8">
             <AvatarImage src={member.avatarUrl || diceBearAvatarUrl(id)} alt="" loading="lazy" />
@@ -77,6 +87,8 @@ function Row({
             <span className="block truncate text-[11px] text-t3 tabular md:hidden" title={helpDetail}>{formatCount(helps)} helps · {formatCount(member.starHelps ?? 0)} stars given</span>
           </span>
         </a>
+        <ProgressionBadges member={member} counts={counts} total={total} className="shrink-0" />
+        {hasProgression(member) && <MemberProgressionDialog login={member.login} nickname={member.nickname} />}
       </div>
 
       <div role="cell" className="hidden min-w-0 md:block">
@@ -122,6 +134,8 @@ export function RankTable({
   meId,
   flashId,
   total = members.length,
+  achievementCounts,
+  memberCount,
   period = "all",
 }: {
   /** Members ranked 4 and below, in rank order. */
@@ -129,6 +143,8 @@ export function RankTable({
   meId?: string | null;
   flashId?: string | null;
   total?: number;
+  achievementCounts?: Record<string, number>;
+  memberCount?: number;
   period?: RankingPeriod;
 }) {
   if (members.length === 0) {
@@ -158,7 +174,7 @@ export function RankTable({
         <div role="rowgroup" className="space-y-1">
           {members.map((m, i) => {
             const id = m.login.toLowerCase();
-            return <Row key={id} period={period} member={m} index={i} isMe={id === meId} flash={id === flashId} />;
+            return <Row key={id} member={m} period={period} index={i} isMe={id === meId} flash={id === flashId} counts={achievementCounts} total={memberCount} />;
           })}
         </div>
       </div>

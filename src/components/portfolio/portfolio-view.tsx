@@ -5,6 +5,8 @@ import { ArrowRightUpIcon, CodeSquareIcon, MapPointIcon, SquareArrowRightUpIcon,
 import { GitHubIcon } from "@/components/brand-icons";
 import { TextureButton } from "@/components/ui/texture-button";
 import { CONTACT_LABELS, PORTFOLIO_ACCENTS, contactHref, type PublicPortfolio } from "@shared/portfolio";
+import type { MemberProgression } from "@shared/progression";
+import { ProgressionPanel } from "@/components/board/progression-panel";
 import "./portfolio.css";
 
 function markdownUrl(url: string, key: string): string {
@@ -22,7 +24,7 @@ export function PortfolioMarkdown({ children }: { children: string }) {
   }}>{children}</Markdown></div>;
 }
 
-export function PortfolioView({ portfolio, preview = false }: { portfolio: PublicPortfolio; preview?: boolean }) {
+export function PortfolioView({ portfolio, preview = false, progression }: { portfolio: PublicPortfolio; preview?: boolean; progression?: MemberProgression }) {
   const accent = PORTFOLIO_ACCENTS[portfolio.accent];
   const contacts = portfolio.contacts.filter((contact) => contact.visible && contact.value);
   const primary = contacts.find((contact) => contact.kind === portfolio.primaryContact);
@@ -71,6 +73,10 @@ export function PortfolioView({ portfolio, preview = false }: { portfolio: Publi
               </div>
             </article>)}
           </div>
+        </section>}
+        {progression && <section className="pf-progress" aria-labelledby="pf-progress-title">
+          <div className="pf-section-heading"><h2 id="pf-progress-title">Milestones</h2><span>{Object.keys(progression.achievements).length} earned</span></div>
+          <ProgressionPanel progression={progression} />
         </section>}
         {portfolio.readme && <section className="pf-about" aria-label="About"><h2>More about me</h2><PortfolioMarkdown>{portfolio.readme}</PortfolioMarkdown></section>}
         {contacts.length > 0 && <section className="pf-contact" aria-labelledby="pf-contact-title"><div><h2 id="pf-contact-title">Get in touch</h2><p>{available ? "Let's talk about your next project." : "Find me online."}</p></div><div className="pf-contact-links">{contacts.map((contact) => <a key={contact.kind} href={contactHref(contact)} target={contact.kind === "email" ? undefined : "_blank"} rel="noopener noreferrer">{CONTACT_LABELS[contact.kind]}<ArrowRightUpIcon className="size-4" aria-hidden /></a>)}</div></section>}

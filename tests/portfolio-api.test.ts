@@ -10,6 +10,7 @@ import { POST as uploadPOST } from "../api/portfolio-upload";
 import { MemoryCommunityStore } from "../server/community-memory";
 import { MemoryPortfolioStore } from "../server/portfolio-store";
 import { defaultPortfolio } from "../shared/portfolio";
+import { memberRecord } from "./helpers/fixtures";
 import { TestStore } from "./helpers/test-store";
 import { createAppServer } from "../server/node-server";
 
@@ -44,6 +45,26 @@ it("requires a session, same-origin JSON and the canonical editor origin", async
   expect((await POST(wrong)).status).toBe(403);
   const state = await GET(req()); expect(state.status).toBe(200); expect(state.headers.get("cache-control")).toBe("private, no-store");
   expect(await state.json()).toMatchObject({ profile: { id: 42 }, version: 0, draft: { contacts: [], primaryContact: "none" } });
+});
+
+it("grants the portfolio achievement to a board member on publish", async () => {
+  await board.createMember(memberRecord({ login: "alice", displayLogin: "Alice", activityDays: ["2026-10-14"] }));
+  expect((await POST(req({ action: "publish", content: content(), version: 0 }))).status).toBe(200);
+  expect((await board.getMember("alice"))?.achievements).toMatchObject({ portfolio_author: expect.any(Number) });
+});
+
+it("keeps a successful publish when recording the achievement fails, and recovers on the next read", async () => {
+  await board.createMember(memberRecord({ login: "alice", displayLogin: "Alice", activityDays: ["2026-10-14"] }));
+  const failing = vi.spyOn(board, "mergeAchievements").mockRejectedValueOnce(new Error("storage hiccup"));
+
+  const publish = await POST(req({ action: "publish", content: content(), version: 0 }));
+  expect(publish.status).toBe(200);
+  expect(await publish.json()).toMatchObject({ version: 1, publishedAt: expect.any(Number) });
+  expect((await board.getMember("alice"))?.achievements?.portfolio_author).toBeUndefined();
+
+  failing.mockRestore();
+  expect((await GET(req())).status).toBe(200);
+  expect((await board.getMember("alice"))?.achievements).toMatchObject({ portfolio_author: expect.any(Number) });
 });
 
 it("accepts long README drafts, isolates live data and rejects lost updates", async () => {
