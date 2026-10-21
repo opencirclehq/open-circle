@@ -10,17 +10,24 @@ let fonts: Promise<Buffer[]> | undefined;
 let logo: Promise<string> | undefined;
 const text = (value: string, style: CSSProperties) => h("div", { style }, value);
 
+/** The text on a 1200×630 link-preview card. */
+export interface ShareCard { label: string; title: string; description: string; author: string; category: string }
+
 export function forumImage(preview: ForumSharePreview): Promise<Buffer> {
-  const key = `${preview.id}:${preview.version}`;
+  return shareImage(`${preview.id}:${preview.version}`, { label: preview.kind === "question" ? "Question" : "Discussion", title: preview.title, description: preview.description, author: preview.author, category: preview.category });
+}
+
+/** Renders once per key; the few most recent cards stay cached. */
+export function shareImage(key: string, card: ShareCard): Promise<Buffer> {
   const cached = images.get(key);
   if (cached) return cached;
-  const image = render(preview).catch(error => { images.delete(key); throw error; });
+  const image = render(card).catch(error => { images.delete(key); throw error; });
   images.set(key, image);
   if (images.size > 24) images.delete(images.keys().next().value!);
   return image;
 }
 
-async function render(preview: ForumSharePreview) {
+async function render(preview: ShareCard) {
   fonts ??= Promise.all([400, 600].map(weight => readFile(path.resolve(`public/fonts/Aspekta-${weight}.ttf`)))).catch(error => { fonts = undefined; throw error; });
   logo ??= readFile(path.resolve("public/favicon.svg")).then(bytes => `data:image/svg+xml;base64,${bytes.toString("base64")}`).catch(error => { logo = undefined; throw error; });
   const [[regular, semibold], logoData] = await Promise.all([fonts, logo]);
@@ -30,7 +37,7 @@ async function render(preview: ForumSharePreview) {
   } },
   h("div", { style: { position: "absolute", top: 52, left: 64, width: 1072, height: 48, display: "flex", alignItems: "center", justifyContent: "space-between" } },
     h("div", { style: { width: 320, height: 48, display: "flex", alignItems: "center", gap: 16 } }, h("img", { src: logoData, width: 48, height: 48 }), text("OpenCircle", { fontSize: 30, fontWeight: 600, letterSpacing: -1 })),
-    text(preview.kind === "question" ? "Question" : "Discussion", { fontSize: 24, color: "#a5afbf" }),
+    text(preview.label, { fontSize: 24, color: "#a5afbf" }),
   ),
   h("div", { style: { position: "absolute", top: 162, left: 64, width: 1072, height: 320, display: "flex", flexDirection: "column", justifyContent: "center", gap: 24 } },
     text(preview.title, { width: 1072, fontSize: preview.title.length > 105 ? 48 : preview.title.length > 65 ? 56 : 64, fontWeight: 600, lineHeight: 1.12, letterSpacing: -2, wordBreak: "break-word", lineClamp: 3, textOverflow: "ellipsis" } as CSSProperties),

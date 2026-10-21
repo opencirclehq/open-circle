@@ -14,7 +14,7 @@ export function GET(req: Request): Promise<Response> {
       return json(await readPublicPortfolio(slug.toLowerCase()), 200, { "cache-control": "no-store" });
     }
     const profile = await requirePortfolioOwner(req);
-    return json(portfolioEditorState(profile, await getPortfolioStore().readOwner(profile.id)), 200, PORTFOLIO_HEADERS);
+    return json(await portfolioEditorState(profile, await getPortfolioStore().readOwner(profile.id)), 200, PORTFOLIO_HEADERS);
   });
 }
 

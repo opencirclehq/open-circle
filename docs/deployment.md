@@ -21,6 +21,8 @@ A static upload of `dist/` only serves the UI. It does not provide registration,
 
 The admin Overview uses the same configured PostgreSQL or Redis storage as the app. Apply migration `004_analytics.sql` through `pnpm db:migrate` before releasing analytics against PostgreSQL. Redis needs no migration. Traffic history starts with the first recorded public visit after release; old traffic cannot be backfilled. No additional analytics service or credentials are required.
 
+The blog needs PostgreSQL. Apply migration `009_blog.sql` through `pnpm db:migrate` before releasing it. The Node server builds `/sitemap.xml` on each request so published posts are listed; a static deployment serves the sitemap generated at build time, which lists `/blog` but not individual posts. See the [blog guide](blog.md).
+
 ## Troubleshooting
 
 | Problem | Check |

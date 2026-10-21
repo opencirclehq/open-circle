@@ -14,7 +14,7 @@ The frontend calls same-origin API routes. Vite serves these during development;
 | `GET /api/repository-stars?id=ID` | GitHub session with optional star permission; up to 20 Spotlight IDs. | Whether stars are connected and the current GitHub star state and count for each repository. Private, uncached response. |
 | `POST /api/repository-stars` | Same-origin JSON `{ "repositoryId": "ID", "active": true }` and GitHub star permission. | Idempotently adds or removes the person’s GitHub star on a listed public Spotlight repository and returns its confirmed state and count. Limited to 30 changes per GitHub account per minute. |
 | `GET /api/auth-start` | None; optional `returnTo=/repositories&stars=1`. | Redirect to GitHub public-profile sign-in. Only the explicit stars flow requests `public_repo` permission. |
-| `GET /api/auth-callback` | GitHub code, matching state and OAuth cookie. | Verified session, then redirect to `/tools`, `/repositories`, `/portfolio`, `/participation` or `/admin` according to the sign-in flow. |
+| `GET /api/auth-callback` | GitHub code, matching state and OAuth cookie. | Verified session, then redirect to `/tools`, `/repositories`, `/portfolio`, `/participation`, a blog page or `/admin` according to the sign-in flow. |
 | `GET /api/participation` | Signed-in GitHub session. | Private group activity, projects, help requests and contributions. |
 | `POST /api/participation` | Same-origin JSON with a signed-in GitHub session; a linking request uses `{ "action": "link", "phone": "+2348000000000" }`. | A linking code or the updated private participation state. |
 | `POST /api/auth` | Same-origin JSON request with GitHub session cookie. | Revokes the session and clears its cookie. |
@@ -29,6 +29,14 @@ The frontend calls same-origin API routes. Vite serves these during development;
 | `DELETE /api/admin-session` | Same-origin JSON and `X-OpenCircle-Admin: 1`. | Revokes the current admin session and clears its cookie. |
 | `POST /api/analytics` | Same-origin JSON with a public `page` path and `referrer` origin. | Records a page view and establishes an anonymous analytics cookie. |
 | `GET /api/analytics?days=30` | Approved admin session; `days` is 7, 30 or 90. | Private traffic totals, daily chart data, popular pages, referral domains and community growth. |
+| `GET /api/blog` | Optional `page` and `topic`. | Published posts, featured first, 12 per page. Each has its author and, when they have published one, the author's portfolio address. Public and cacheable; revalidate with `If-None-Match`. |
+| `GET /api/blog?slug=SLUG` | None. | One published post with its Markdown body, original address and related repository. Missing and hidden posts return 404. |
+| `GET /api/blog?mine=1` and `GET /api/blog?id=ID` | Signed-in GitHub session linked to a current group member. | The member's own drafts, submissions and reviewer notes, or one of them. Other members' posts return 404. |
+| `POST /api/blog` | Same-origin JSON from a verified member: `action` (`save` or `submit`), `requestId`, `id`, `version` and `content` with `title`, `summary`, `topic`, `body`, `canonicalUrl` and `repository`. A new post uses a new UUID and `version` 0. `canonicalUrl` and `repository` are required keys; send `null` for none. | The private draft. Submitting checks every minimum and refuses raw HTML, images without alt text and unsafe links. A related repository is confirmed with its code host. See the [blog guide](blog.md). |
+| `GET /api/blog-admin?queue=pending&page=1` | Approved admin session. `queue` is required: `pending`, `published`, `hidden`, `drafts`, `rejected` or `all`. | Posts in that review queue. |
+| `GET /api/blog-admin?id=ID` | Approved admin session. | One post with its history. |
+| `POST /api/blog-admin` | Admin session, same-origin JSON and `X-OpenCircle-Admin: 1`. `{ "action": "review", "decision": "approve" \| "changes" \| "reject", "reason" }` or `{ "action": "moderate", "operation": "hide" \| "restore" \| "feature" \| "unfeature", "reason" }`, each with `requestId`, `id` and `version`. | The updated post. Requesting changes and declining need a reason of at least 5 characters; hiding needs at least 3. |
+| `GET /api/blog-image?slug=SLUG` | None. | A 1200×630 PNG share card for a published post. |
 
 Admin actions are `hide`, `unhide` and `remove`, with a `login`, or `config`, with complete invite and weight settings. The exact request and response types live in [`shared/types.ts`](../shared/types.ts).
 

@@ -6,6 +6,41 @@ import { devApi } from "./server/vite-dev-api";
 import { seo } from "./server/vite-seo";
 import { DEFAULT_SITE_URL } from "./shared/brand";
 
+/** The npm package a bundled module comes from, read from its node_modules path. */
+function packageOf(id: string): string | null {
+  return /.*[\\/]node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/.exec(id)?.[1].replace("\\", "/") ?? null;
+}
+const among = (...names: string[]) => (name: string) => names.includes(name);
+const EAGER_LANGUAGES = ["markdown", "html", "css", "javascript"];
+
+// Shared vendor chunks every page loads, then the post editor's libraries, which
+// only the writing page loads. The editor is split so no one chunk grows too large.
+const CHUNKS: [string, (name: string) => boolean][] = [
+  ["react", among("react", "react-dom", "scheduler", "react-router", "react-router-dom", "@remix-run/router", "@tanstack/react-query", "@tanstack/query-core")],
+  ["motion", among("motion", "framer-motion", "motion-dom", "motion-utils")],
+  ["metal", among("metal-fx")],
+  // The app's Radix primitives and their helpers. Radix parts only the editor uses stay with the editor.
+  ["primitives", among(
+    "@radix-ui/primitive", "@radix-ui/react-arrow", "@radix-ui/react-avatar", "@radix-ui/react-collection", "@radix-ui/react-compose-refs",
+    "@radix-ui/react-context", "@radix-ui/react-dialog", "@radix-ui/react-direction", "@radix-ui/react-dismissable-layer", "@radix-ui/react-focus-guards",
+    "@radix-ui/react-focus-scope", "@radix-ui/react-id", "@radix-ui/react-popper", "@radix-ui/react-portal", "@radix-ui/react-presence",
+    "@radix-ui/react-primitive", "@radix-ui/react-roving-focus", "@radix-ui/react-slot", "@radix-ui/react-switch", "@radix-ui/react-tabs",
+    "@radix-ui/react-tooltip", "@radix-ui/react-use-callback-ref", "@radix-ui/react-use-controllable-state", "@radix-ui/react-use-effect-event",
+    "@radix-ui/react-use-is-hydrated", "@radix-ui/react-use-layout-effect", "@radix-ui/react-use-size", "@radix-ui/react-visually-hidden",
+    "@floating-ui/core", "@floating-ui/dom", "@floating-ui/react-dom", "@floating-ui/utils", "aria-hidden", "detect-node-es", "get-nonce",
+    "react-remove-scroll", "react-remove-scroll-bar", "react-style-singleton", "tslib", "use-callback-ref", "use-sidecar",
+  )],
+  // The view, its state and their small helpers depend on nothing else, so the chunks below import it one way.
+  ["editor-codemirror-view", among("@codemirror/view", "@codemirror/state", "style-mod", "w3c-keyname", "crelt", "@marijn/find-cluster-break")],
+  // Markdown and the languages it embeds load with the editor; code block languages load on demand in their own chunks.
+  // language-data, which starts those loads, stays with the editor: a manual chunk would take Vite's preload helper
+  // with it, and every page needs that helper.
+  ["editor-codemirror", (name) => among("codemirror", "cm6-theme-basic-light", "@lezer/common", "@lezer/lr", "@lezer/highlight")(name)
+    || EAGER_LANGUAGES.some((language) => name === `@codemirror/lang-${language}` || name === `@lezer/${language}`)
+    || (name.startsWith("@codemirror/") && !name.startsWith("@codemirror/lang-") && !["@codemirror/legacy-modes", "@codemirror/language-data"].includes(name))],
+  ["editor-lexical", (name) => name === "lexical" || name.startsWith("@lexical/")],
+];
+
 // https://vite.dev/config/
 export default defineConfig(({ mode, isSsrBuild }) => {
   // The dev API reads GITHUB_TOKEN, ADMIN_GITHUB_IDS etc. from process.env, like Vercel does.
@@ -24,18 +59,9 @@ export default defineConfig(({ mode, isSsrBuild }) => {
     build: isSsrBuild ? {} : {
       rollupOptions: {
         output: {
-          manualChunks: {
-            react: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
-            motion: ["motion/react"],
-            metal: ["metal-fx"],
-            primitives: [
-              "@radix-ui/react-avatar",
-              "@radix-ui/react-dialog",
-              "@radix-ui/react-slot",
-              "@radix-ui/react-switch",
-              "@radix-ui/react-tabs",
-              "@radix-ui/react-tooltip",
-            ],
+          manualChunks(id) {
+            const name = packageOf(id);
+            return name ? CHUNKS.find(([, packages]) => packages(name))?.[0] : undefined;
           },
         },
       },

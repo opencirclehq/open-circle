@@ -5,6 +5,7 @@ import { ArrowRightUpIcon, CodeSquareIcon, MapPointIcon, SquareArrowRightUpIcon,
 import { GitHubIcon } from "@/components/brand-icons";
 import { TextureButton } from "@/components/ui/texture-button";
 import { CONTACT_LABELS, PORTFOLIO_ACCENTS, contactHref, type PublicPortfolio } from "@shared/portfolio";
+import type { PortfolioPost } from "@shared/blog";
 import "./portfolio.css";
 
 function markdownUrl(url: string, key: string): string {
@@ -22,7 +23,10 @@ export function PortfolioMarkdown({ children }: { children: string }) {
   }}>{children}</Markdown></div>;
 }
 
-export function PortfolioView({ portfolio, preview = false }: { portfolio: PublicPortfolio; preview?: boolean }) {
+const postDate = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
+
+/** `posts` lists the owner's published blog posts; leave it out where there are none to show, as in the example. */
+export function PortfolioView({ portfolio, posts, preview = false }: { portfolio: PublicPortfolio; posts?: PortfolioPost[]; preview?: boolean }) {
   const accent = PORTFOLIO_ACCENTS[portfolio.accent];
   const contacts = portfolio.contacts.filter((contact) => contact.visible && contact.value);
   const primary = contacts.find((contact) => contact.kind === portfolio.primaryContact);
@@ -71,6 +75,14 @@ export function PortfolioView({ portfolio, preview = false }: { portfolio: Publi
               </div>
             </article>)}
           </div>
+        </section>}
+        {!!posts?.length && <section className="pf-writing" aria-labelledby="pf-writing-title">
+          <div className="pf-section-heading"><h2 id="pf-writing-title">Writing</h2><span>On the OpenCircle blog</span></div>
+          <ul className="pf-posts">{posts.map((post) => <li key={post.url} className="pf-post">
+            <p className="pf-post-meta"><span>{post.topic}</span><time dateTime={new Date(post.publishedAt).toISOString()}>{postDate.format(post.publishedAt)}</time></p>
+            <h3><a href={post.url}>{post.title}</a></h3>
+            <p>{post.summary}</p>
+          </li>)}</ul>
         </section>}
         {portfolio.readme && <section className="pf-about" aria-label="About"><h2>More about me</h2><PortfolioMarkdown>{portfolio.readme}</PortfolioMarkdown></section>}
         {contacts.length > 0 && <section className="pf-contact" aria-labelledby="pf-contact-title"><div><h2 id="pf-contact-title">Get in touch</h2><p>{available ? "Let's talk about your next project." : "Find me online."}</p></div><div className="pf-contact-links">{contacts.map((contact) => <a key={contact.kind} href={contactHref(contact)} target={contact.kind === "email" ? undefined : "_blank"} rel="noopener noreferrer">{CONTACT_LABELS[contact.kind]}<ArrowRightUpIcon className="size-4" aria-hidden /></a>)}</div></section>}

@@ -9,7 +9,7 @@ import { defaultPortfolio, type PortfolioEditorState, type PublicPortfolio } fro
 import { COMMUNITY_KEY } from "../src/hooks/use-community";
 
 const profile = { id: 42, login: "Alice", avatarUrl: "https://avatars.githubusercontent.com/u/42" };
-function initial(): PortfolioEditorState { return { profile, draft: { ...defaultPortfolio(profile), displayName: "Alice Chen" }, version: 0, publishedAt: null, updatedAt: null, uploadsAvailable: false, subdomainsAvailable: false }; }
+function initial(): PortfolioEditorState { return { profile, posts: [], draft: { ...defaultPortfolio(profile), displayName: "Alice Chen" }, version: 0, publishedAt: null, updatedAt: null, uploadsAvailable: false, subdomainsAvailable: false }; }
 function mount(state = initial()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity }, mutations: { retry: false } } });
   // The editor's avatar menu reads the signed-in account; seed it so the only
@@ -170,9 +170,9 @@ it("accepts a newer saved draft when untouched and preserves changes already bei
 });
 
 it.each([
-  ["Group participation", "/participation", "Participation page"],
-  ["OpenCircle home", "/", "Community board"],
-])("asks before %s leaves unsaved changes, and leaves only when confirmed", async (action, destination, page) => {
+  ["Group participation", "button", "/participation", "Participation page"],
+  ["OpenCircle home", "link", "/", "Community board"],
+] as const)("asks before %s leaves unsaved changes, and leaves only when confirmed", async (action, role, destination, page) => {
   const user = userEvent.setup();
   vi.stubGlobal("fetch", vi.fn());
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
@@ -182,12 +182,12 @@ it.each([
     <Route path={destination} element={<p>{page}</p>} />
   </Routes></QueryClientProvider></MemoryRouter>);
   await user.type(screen.getByLabelText("Name", { exact: true }), " Jr");
-  await user.click(screen.getByRole("button", { name: action }));
+  await user.click(screen.getByRole(role, { name: action }));
   expect(screen.getByRole("dialog").textContent).toContain("Leave your unsaved changes?");
   await user.click(screen.getByRole("button", { name: "Keep editing" }));
   expect(screen.getByLabelText("Name", { exact: true })).toBeTruthy();
   expect(screen.queryByText(page)).toBeNull();
-  await user.click(screen.getByRole("button", { name: action }));
+  await user.click(screen.getByRole(role, { name: action }));
   await user.click(screen.getByRole("button", { name: "Leave page" }));
   expect(await screen.findByText(page)).toBeTruthy();
 });

@@ -10,7 +10,8 @@ Copy [`.env.example`](../.env.example) to `.env.local` and use your own developm
 
 | Variable | Use | Required |
 | --- | --- | --- |
-| `GITHUB_TOKEN` | Server-side authentication for read-only GitHub GraphQL queries. | Profile lookup, registration and GitHub refreshes. |
+| `GITHUB_TOKEN` | Server-side authentication for read-only GitHub GraphQL queries. Also raises GitHub's rate limit when confirming blog posts' related repositories. | Profile lookup, registration and GitHub refreshes. |
+| `SITE_URL` | The public site origin, such as `https://opencircle.cc`, used in canonical links, the sitemap, portfolio addresses and portfolio links to blog posts. | Optional; defaults to `https://opencircle.cc`. Set it for other deployments and for local testing of those links. |
 | `ADMIN_GITHUB_IDS` | Comma-separated permanent GitHub user IDs allowed into `/admin`. | Admin access only. |
 | `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`, `GITHUB_OAUTH_REDIRECT_URI` | Server-only OAuth credentials and the exact callback URL. | GitHub sign-in and admin access. |
 | `TRUST_PROXY` | Set to `1` only when the Node server is behind a trusted reverse proxy that appends or overwrites `X-Forwarded-For`. | Optional on Node hosts. |

@@ -1,4 +1,5 @@
 import { BRAND_NAME, DEFAULT_SITE_URL } from "./brand";
+import { blogSlugFromPath } from "./blog-paths";
 
 export const GITHUB_URL = "https://github.com/opencirclehq/open-circle";
 export const X_URL = "https://x.com/_Cybersmith";
@@ -53,6 +54,16 @@ export const SEO_PAGES: readonly SeoPage[] = [
     index: true,
   },
   {
+    path: "/blog",
+    title: `Blog · ${BRAND_NAME}`,
+    description: "Articles from Open Source Circle developers on open source, tutorials, careers and building in public. Every post is reviewed before it's published.",
+    summary: "Writing from the circle, reviewed before it's published.",
+    heading: "Blog",
+    index: true,
+  },
+  { path: "/blog/mine", title: `Your posts · ${BRAND_NAME}`, description: "Your OpenCircle blog drafts and submissions.", summary: "Your blog drafts and submissions.", heading: "Your posts", index: false },
+  { path: "/blog/write", title: `Write a post · ${BRAND_NAME}`, description: "Write an OpenCircle blog post for review.", summary: "Write a blog post for review.", heading: "Write a post", index: false },
+  {
     path: "/community",
     title: `Community · ${BRAND_NAME}`,
     description: "Development discussions, questions and polls for verified Open Source Circle members.",
@@ -101,6 +112,7 @@ export const SITE_LINKS = [
   { path: "/repositories", label: "Spotlight" },
   { path: "/tools", label: "Developer tools" },
   { path: "/how-it-works", label: "How ranking works" },
+  { path: "/blog", label: "Blog" },
   { path: "/community", label: "Community" },
   { path: "/participation", label: "Group participation" },
 ] as const;
@@ -112,6 +124,10 @@ export type SeoDocument = SeoPage & {
   robots: string;
   url: string;
   image?: { url: string; alt: string; contentType: string; width?: number; height?: number };
+  /** Trusted, already-escaped article HTML for readers and crawlers without JavaScript. */
+  content?: string;
+  /** Where search engines should credit the page, when it isn't `url` (a cross-posted article). */
+  canonical?: string;
 };
 
 export function siteOrigin(value = DEFAULT_SITE_URL) {
@@ -130,7 +146,10 @@ export function pageFor(pathname: string) {
 export function seoDocument(pathname: string, originInput = DEFAULT_SITE_URL): SeoDocument {
   const origin = siteOrigin(originInput);
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname || "/";
-  const page = byPath.get(path.startsWith("/community/") ? "/community" : path) ?? (/^\/events\/[a-z0-9-]+$/.test(path) ? { ...byPath.get("/events")!, path } : NOT_FOUND);
+  const page = byPath.get(path.startsWith("/community/") ? "/community" : path)
+    ?? (/^\/events\/[a-z0-9-]+$/.test(path) ? { ...byPath.get("/events")!, path }
+      : /^\/blog\/write\/[a-f\d-]{36}$/i.test(path) ? { ...byPath.get("/blog/write")!, path }
+        : blogSlugFromPath(path) ? { ...byPath.get("/blog")!, path } : NOT_FOUND);
   const canonicalPath = path.startsWith("/community/") ? path : page.path || (path.startsWith("/") ? path : "/");
   return {
     ...page,
@@ -185,15 +204,16 @@ export function structuredData(originInput = DEFAULT_SITE_URL) {
 
 export function robotsTxt(originInput = DEFAULT_SITE_URL) {
   const origin = siteOrigin(originInput);
-  return ["User-agent: *", "Allow: /", "Allow: /api/event-cover", "Allow: /api/forum-image", "Disallow: /admin", "Disallow: /portfolio", "Disallow: /api/", "", `Sitemap: ${origin}/sitemap.xml`, ""].join("\n");
+  return ["User-agent: *", "Allow: /", "Allow: /api/event-cover", "Allow: /api/forum-image", "Allow: /api/blog-image", "Disallow: /admin", "Disallow: /portfolio", "Disallow: /api/", "", `Sitemap: ${origin}/sitemap.xml`, ""].join("\n");
 }
 
-export function sitemapXml(originInput = DEFAULT_SITE_URL, lastmod = new Date().toISOString().slice(0, 10)) {
+/** Static pages, plus dynamic entries (published posts) when the server knows them. */
+export function sitemapXml(originInput = DEFAULT_SITE_URL, lastmod = new Date().toISOString().slice(0, 10), entries: { path: string; lastmod: string }[] = []) {
   const origin = siteOrigin(originInput);
-  const urls = SEO_PAGES.filter((page) => page.index)
+  const urls = [...SEO_PAGES.filter((page) => page.index).map((page) => ({ path: page.path, lastmod })), ...entries]
     .map((page) => {
-      const loc = page.path === "/" ? `${origin}/` : `${origin}${page.path}`;
-      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
+      const loc = page.path === "/" ? `${origin}/` : `${origin}${escapeText(page.path)}`;
+      return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${page.lastmod}</lastmod>\n  </url>`;
     })
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
@@ -264,6 +284,8 @@ export function applySeo(html: string, document: SeoDocument) {
     .replace(/(<h1\b[^>]*\bid=["']seo-title["'][^>]*>)[\s\S]*?(<\/h1>)/i, (_, start, end) => `${start}${escapeText(document.heading)}${end}`)
     .replace(/(<p\b[^>]*\bid=["']seo-summary["'][^>]*>)[\s\S]*?(<\/p>)/i, (_, start, end) => `${start}${escapeText(document.summary)}${end}`)
     .replace(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/i, `<script type="application/ld+json">\n${json}\n    </script>`);
+  next = next.replace(/\s*<article\b[^>]*\bid=["']seo-article["'][^>]*>[\s\S]*?<\/article>/i, "");
+  if (document.content) next = next.replace(/<p\b[^>]*\bid=["']seo-summary["'][^>]*>[\s\S]*?<\/p>/i, (summary) => `${summary}\n        <article id="seo-article">${document.content}</article>`);
   next = replaceMeta(next, "name", "description", document.description);
   next = replaceMeta(next, "name", "robots", document.robots);
   next = replaceMeta(next, "property", "og:title", document.title);
@@ -282,5 +304,5 @@ export function applySeo(html: string, document: SeoDocument) {
       else next = next.replace(new RegExp(`<meta\\b(?=[^>]*\\bproperty=["']og:image:${dimension}["'])[^>]*>\\s*`, "gi"), "");
     }
   }
-  return replaceCanonical(next, document.url);
+  return replaceCanonical(next, document.canonical ?? document.url);
 }

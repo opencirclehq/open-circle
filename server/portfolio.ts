@@ -1,11 +1,13 @@
 import type { GitHubProfile } from "../shared/community.js";
-import { defaultPortfolio, publicPortfolio, type PortfolioEditorState, type PortfolioRecord } from "../shared/portfolio.js";
+import { defaultPortfolio, publicPortfolio, type PortfolioEditorState, type PortfolioRecord, type PublicPortfolioPage } from "../shared/portfolio.js";
 import { parsePortfolio, PortfolioValidationError } from "../shared/portfolio-validation.js";
 import { getCommunityStore } from "./community-store.js";
 import { getStore } from "./db.js";
 import { githubProfile } from "./github-auth.js";
 import { verifyPortfolioRepository } from "./portfolio-github.js";
 import { getPortfolioStore } from "./portfolio-store.js";
+import { portfolioPosts } from "./blog.js";
+import { getBlogStore } from "./blog-store.js";
 import { portfolioUploadsAvailable } from "./portfolio-upload.js";
 import { HttpError } from "./http.js";
 import { clientKey } from "./rate-limit.js";
@@ -37,9 +39,9 @@ export async function portfolioRateLimit(req: Request, actor: string, action: "w
   if (results.some((allowed) => !allowed)) throw new HttpError(429, "portfolio_rate", "You've made several requests. Wait a little and try again.", undefined, { "retry-after": String(window) });
 }
 
-export function portfolioEditorState(profile: GitHubProfile, record: PortfolioRecord | null): PortfolioEditorState {
+export async function portfolioEditorState(profile: GitHubProfile, record: PortfolioRecord | null): Promise<PortfolioEditorState> {
   return {
-    profile, draft: record?.draft ?? defaultPortfolio(profile), version: record?.version ?? 0,
+    profile, posts: await portfolioPosts(getBlogStore(), profile.id), draft: record?.draft ?? defaultPortfolio(profile), version: record?.version ?? 0,
     publishedAt: record?.publishedAt ?? null, updatedAt: record?.updatedAt ?? null,
     uploadsAvailable: portfolioUploadsAvailable(), subdomainsAvailable: process.env.PORTFOLIO_SUBDOMAINS_ENABLED === "1",
   };
@@ -68,10 +70,10 @@ export async function savePortfolio(profile: GitHubProfile, input: unknown): Pro
   }
 }
 
-export async function readPublicPortfolio(slug: string) {
+export async function readPublicPortfolio(slug: string): Promise<PublicPortfolioPage> {
   if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(slug)) throw new HttpError(404, "portfolio_missing", "This portfolio isn't published yet.");
   const record = await getPortfolioStore().readSlug(slug);
   const published = record && publicPortfolio(record);
   if (!published) throw new HttpError(404, "portfolio_missing", "This portfolio isn't published yet.");
-  return published;
+  return { ...published, posts: await portfolioPosts(getBlogStore(), record.ownerId) };
 }

@@ -1,6 +1,7 @@
 import { EVENT_BODY_BYTES } from "../shared/events.js";
 import { FORUM_MAX_BYTES } from "../shared/forum.js";
 import { BOT_SETTINGS_MAX_BYTES } from "../shared/bot-settings.js";
+import { BLOG_MAX_BYTES } from "../shared/blog.js";
 import { MAX_IMAGE_BYTES, MAX_PORTFOLIO_BYTES } from "../shared/portfolio.js";
 import { getStore } from "./db.js";
 import { handle, HttpError, MAX_REQUEST_BYTES, requireSameOrigin } from "./http.js";
@@ -8,7 +9,7 @@ import { clientKey } from "./rate-limit.js";
 
 export function apiBodyLimit(pathname: string): number {
   const route = pathname.replace(/\/$/, "");
-  return route === "/api/events" ? EVENT_BODY_BYTES : ["/api/forum", "/api/forum-admin"].includes(route) ? FORUM_MAX_BYTES : route === "/api/bot-settings" ? BOT_SETTINGS_MAX_BYTES : route === "/api/portfolio-upload" ? MAX_IMAGE_BYTES : route === "/api/portfolio" ? MAX_PORTFOLIO_BYTES : MAX_REQUEST_BYTES;
+  return route === "/api/events" ? EVENT_BODY_BYTES : ["/api/forum", "/api/forum-admin"].includes(route) ? FORUM_MAX_BYTES : route === "/api/bot-settings" ? BOT_SETTINGS_MAX_BYTES : ["/api/blog", "/api/blog-admin"].includes(route) ? BLOG_MAX_BYTES : route === "/api/portfolio-upload" ? MAX_IMAGE_BYTES : route === "/api/portfolio" ? MAX_PORTFOLIO_BYTES : MAX_REQUEST_BYTES;
 }
 
 export function validateApiRequest(req: Request): void {

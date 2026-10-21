@@ -23,5 +23,5 @@ export default function PublicPortfolio({ slug: tenantSlug }: { slug?: string })
     const missing = query.error instanceof ApiError && query.error.status === 404;
     return <main className="studio-error-panel"><h1>{missing ? "Portfolio unavailable" : "Couldn't load this portfolio"}</h1><p>{missing ? "This portfolio hasn't been published, or its owner has taken it offline." : query.error?.message ?? "Please try again."}</p>{!missing && <TextureButton type="button" className="mt-6 w-auto" onClick={() => void query.refetch()}>Try again</TextureButton>}<TextureButton asChild variant="secondary" className="mt-6 w-auto"><a href="https://opencircle.cc">Explore OpenCircle</a></TextureButton></main>;
   }
-  return <PortfolioView portfolio={query.data} />;
+  return <PortfolioView portfolio={query.data} posts={query.data.posts} />;
 }

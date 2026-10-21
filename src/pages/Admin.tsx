@@ -35,6 +35,7 @@ import { ContentSkeleton, SettingsSkeleton } from "@/components/site-skeleton";
 
 const AdminEvents = lazy(() => import("@/components/events/admin-events"));
 const AdminForum = lazy(() => import("@/components/forum/admin-forum"));
+const AdminBlog = lazy(() => import("@/components/blog/admin-blog"));
 const AdminBotSettings = lazy(() => import("@/components/admin-bot-settings"));
 
 const SESSION_KEY = ["admin", "session"];
@@ -149,6 +150,7 @@ function Dashboard({ profile, onUnauthorized }: { profile: NonNullable<AdminSess
         <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="tools">Tools{pending ? ` (${pending})` : ""}</TabsTrigger>
         <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="events">Events</TabsTrigger>
         <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="community">Community</TabsTrigger>
+        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="blog">Blog</TabsTrigger>
         <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="settings">Settings</TabsTrigger>
       </TabsList>
       <TabsContent value="overview"><AdminAnalytics onUnauthorized={onUnauthorized} onReviewTools={() => setSection("tools")} /></TabsContent>
@@ -156,6 +158,7 @@ function Dashboard({ profile, onUnauthorized }: { profile: NonNullable<AdminSess
       <TabsContent value="events"><Suspense fallback={<ContentSkeleton label="Loading events…" />}><AdminEvents onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
       <TabsContent value="tools"><FadeIn><ToolModeration onUnauthorized={onUnauthorized} /></FadeIn></TabsContent>
       <TabsContent value="community"><Suspense fallback={<ContentSkeleton label="Loading community moderation…" />}><AdminForum profile={profile} onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
+      <TabsContent value="blog"><Suspense fallback={<ContentSkeleton label="Loading blog review…" />}><AdminBlog profile={profile} onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
       <TabsContent value="settings" forceMount={settingsVisited || undefined} hidden={section !== "settings"}><FadeIn><div className="space-y-6"><Settings config={state.data.config} saving={action.isPending} onSave={(config) => action.mutate({ action: "config", config })} /><Suspense fallback={<SettingsSkeleton />}><AdminBotSettings onUnauthorized={onUnauthorized} /></Suspense></div></FadeIn></TabsContent>
     </Tabs>
   </div>;

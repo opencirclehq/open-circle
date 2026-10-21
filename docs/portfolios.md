@@ -16,6 +16,10 @@ Email, website, LinkedIn and WhatsApp contacts start private. Owners enter the c
 
 README rendering supports Markdown and GFM tables, task lists and code blocks. Raw HTML and executable URLs are disabled. Repository README imports resolve common relative Markdown links and images; HTML-only content is omitted. Owners can edit imported writing before publishing.
 
+## Blog posts
+
+A published portfolio lists its owner's six latest published [blog posts](blog.md) under **Writing**, linked back to the blog, and the editor preview shows the same list. Each blog post links its author's name and photo to their published portfolio.
+
 ## Storage
 
 Apply the existing versioned migrations with `pnpm db:migrate` before enabling portfolios on a deployed app. `005_portfolios.sql` adds one table; it does not change existing members, sessions, tools or votes. Follow the normal process of testing on an isolated database before applying production migrations.

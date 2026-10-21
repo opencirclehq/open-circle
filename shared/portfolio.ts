@@ -1,4 +1,5 @@
 import type { GitHubProfile } from "./community.js";
+import type { PortfolioPost } from "./blog.js";
 
 export const PORTFOLIO_DOMAIN = "opencircle.cc";
 export const MAX_PORTFOLIO_BYTES = 128_000;
@@ -78,8 +79,13 @@ export interface PublicPortfolio extends PortfolioContent {
   publishedAt: number;
 }
 
+/** The public portfolio API also lists the owner's latest blog posts. */
+export type PublicPortfolioPage = PublicPortfolio & { posts: PortfolioPost[] };
+
 export interface PortfolioEditorState {
   profile: GitHubProfile;
+  /** The owner's published blog posts, as the portfolio will list them. */
+  posts: PortfolioPost[];
   draft: PortfolioContent;
   version: number;
   publishedAt: number | null;

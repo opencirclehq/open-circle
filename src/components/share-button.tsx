@@ -3,7 +3,7 @@ import { CheckReadIcon, CopyIcon, ShareIcon } from "@solar-icons/react/linear";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import "./content-actions.css";
 
-export function ShareButton({ path, title, kind, variant = "plain" }: { path: string; title: string; kind: "discussion" | "question" | "event"; variant?: "plain" | "filled" | "light" }) {
+export function ShareButton({ path, title, kind, variant = "plain" }: { path: string; title: string; kind: "discussion" | "question" | "event" | "post"; variant?: "plain" | "filled" | "light" }) {
   const [busy, setBusy] = useState(false);
   const [copiedPath, setCopiedPath] = useState("");
   const [manualLink, setManualLink] = useState("");
