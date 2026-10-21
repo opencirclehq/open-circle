@@ -1,6 +1,6 @@
 import type { RankingPeriod } from "@shared/coordination";
 import type * as React from "react";
-import { CrownStarIcon, StarIcon, UserPlusRoundedIcon } from "@solar-icons/react/bold-duotone";
+import { CrownStarIcon, UserPlusRoundedIcon } from "@solar-icons/react/bold-duotone";
 import { AnimatePresence, motion } from "motion/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { diceBearAvatarUrl, formatCount, formatFull, formatHelpDetail } from "@/lib/format";
@@ -97,7 +97,14 @@ function PodiumSlot({
                 {formatCount(entry.helpfulContributions + (entry.starHelps ?? 0))} helps · {formatCount(entry.starHelps ?? 0)} stars given
               </span>}
               <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-t3 tabular sm:mt-1 sm:text-xs">
-                {entry.secondary?.icon ?? <StarIcon size={11} aria-hidden />}
+                {entry.secondary?.icon ?? <img
+                  src={`/images/podium/star-${medals[rank]}.png`}
+                  width={16}
+                  height={16}
+                  alt=""
+                  aria-hidden
+                  className="size-3.5 shrink-0 object-contain sm:size-4"
+                />}
                 {formatCount(entry.secondary?.value ?? entry.stars)}
                 <span className="sr-only"> {entry.secondary?.label ?? "stars"}</span>
               </span>
