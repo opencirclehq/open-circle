@@ -14,6 +14,7 @@ function validState(input: unknown): input is BotSettingsState {
   if (![value.community.summaryTime, value.community.helpTime, value.community.demoTime].every((time) => typeof time === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(time)) || ![value.community.mentorWaitHours, value.community.helpDay, value.community.demoDay, value.community.sessionMinutes].every(Number.isInteger)) return false;
   for (const [key, field] of Object.entries(BOT_OPTION_FIELDS)) {
     const option = value.options[key as keyof typeof BOT_OPTION_FIELDS];
+    if (key === "weeklyEngagementEnforcement" && option === undefined) continue;
     if (typeof field.value === "boolean" ? typeof option !== "boolean" : typeof option !== "number" || !Number.isInteger(option) || option < field.min || option > field.max) return false;
   }
   if (!Object.keys(MESSAGE_TEMPLATES).every((key) => typeof value.messages[key as keyof typeof MESSAGE_TEMPLATES] === "string" && value.messages[key as keyof typeof MESSAGE_TEMPLATES].length <= 6000)) return false;

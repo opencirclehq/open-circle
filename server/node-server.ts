@@ -6,6 +6,7 @@ import * as eventUploads from "../api/event-uploads.js";
 import * as eventMedia from "../api/event-media.js";
 import * as eventCover from "../api/event-cover.js";
 import * as botSettings from "../api/bot-settings.js";
+import * as botAdmin from "../api/bot-admin.js";
 /**
  * Standalone Node server for hosts that aren't Vercel (e.g. Pxxl): serves the
  * built SPA from dist/ and the same api/*.ts handlers on the same paths.
@@ -65,6 +66,7 @@ const routes: Record<string, Record<string, Handler | undefined>> = {
   analytics: analytics as Record<string, Handler>,
   admin: admin as Record<string, Handler>,
   "bot-settings": botSettings as Record<string, Handler>,
+  "bot-admin": botAdmin as Record<string, Handler>,
   "admin-session": adminSession as Record<string, Handler>,
   auth: auth as Record<string, Handler>,
   "auth-start": authStart as Record<string, Handler>,

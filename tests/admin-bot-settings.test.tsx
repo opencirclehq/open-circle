@@ -68,6 +68,15 @@ it("retries unavailable settings and does not refill private cache after a late 
   expect(screen.getByRole("switch", { name: "Tag newcomers" }).hasAttribute("disabled")).toBe(true); client.setQueryData(["admin", "session"], { configured: true, profile: null }); unmount(); client.removeQueries({ queryKey: ["admin", "bot-settings"] }); resolve({ ...state, version: 2 }); await new Promise((done) => setTimeout(done, 10)); expect(client.getQueryData(["admin", "bot-settings"])).toBeUndefined();
 });
 
+it("hides an unsupported weekly option and saves only the bot's actual settings", async () => {
+  delete state.options.weeklyEngagementEnforcement;
+  vi.mocked(api.saveBotSettings).mockResolvedValue({ ...state, version: 2, options: { ...state.options, welcomeTagging: false } });
+  const user = userEvent.setup(); setup(); await screen.findByRole("switch", { name: "Tag newcomers" });
+  await user.click(screen.getByRole("tab", { name: "Moderation" })); expect(screen.queryByRole("switch", { name: "Weekly inactivity warnings and removal" })).toBeNull();
+  await user.click(screen.getByRole("tab", { name: "Welcome" })); await user.click(screen.getByRole("switch", { name: "Tag newcomers" })); await user.click(screen.getByRole("button", { name: "Save bot settings" }));
+  expect(vi.mocked(api.saveBotSettings).mock.calls[0][0].options).not.toHaveProperty("weeklyEngagementEnforcement");
+});
+
 it("keeps an active message editor visible when its edited text no longer matches the search", async () => {
   const user = userEvent.setup(); setup(); await screen.findByRole("switch", { name: "Tag newcomers" }); await user.click(screen.getByRole("tab", { name: "Messages" }));
   await user.type(screen.getByRole("searchbox", { name: "Search message formats" }), "Welcome to our"); await user.click(screen.getByText("New member greeting", { selector: "summary" }));

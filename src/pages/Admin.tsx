@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { pollApi } from "@/lib/query-policy";
 import type * as React from "react";
 import { GitHubIcon } from "@/components/brand-icons";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -22,7 +22,7 @@ import { ToolModeration } from "@/components/board/tool-moderation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SharedSelect } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { TextureButton } from "@/components/ui/texture-button";
 import { COMMUNITY_KEY } from "@/hooks/use-community";
 import { ApiError, api } from "@/lib/api";
@@ -32,11 +32,16 @@ import { useErrorToast } from "@/hooks/use-error-toast";
 import { AdminAnalytics } from "@/components/admin-analytics";
 import { AdminDashboardSkeleton } from "@/components/admin-skeleton";
 import { ContentSkeleton, SettingsSkeleton } from "@/components/site-skeleton";
+import { useBotAdmin, useBotAdminActions } from "@/hooks/use-bot-admin";
+import { ADMIN_GROUPS, botPending, isAdminSection, type BotSection } from "@/lib/admin-navigation";
+import { AdminNavigation } from "@/components/admin/navigation";
+import { AdminQuickActions } from "@/components/admin/quick-actions";
 
 const AdminEvents = lazy(() => import("@/components/events/admin-events"));
 const AdminForum = lazy(() => import("@/components/forum/admin-forum"));
 const AdminBlog = lazy(() => import("@/components/blog/admin-blog"));
 const AdminBotSettings = lazy(() => import("@/components/admin-bot-settings"));
+const BotManagement = lazy(() => import("@/components/admin/bot-management"));
 
 const SESSION_KEY = ["admin", "session"];
 const STATE_KEY = ["admin", "state"];
@@ -73,7 +78,7 @@ const Admin = () => {
   return (
     <div className="relative min-h-dvh">
       <div className="app-backdrop" aria-hidden />
-      <div className="page-container relative z-10 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
+      <div className="page-container relative z-10 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] lg:max-w-6xl">
         <AccountCorner>
           {profile && <>
             <span className="hidden max-w-36 truncate text-xs text-t3 sm:inline" title={`@${profile.login}`}>@{profile.login}</span>
@@ -107,11 +112,21 @@ function SignIn({ configured }: { configured: boolean }) {
 }
 
 function Dashboard({ profile, onUnauthorized }: { profile: NonNullable<AdminSession["profile"]>; onUnauthorized: () => void }) {
-  const [section, setSection] = useState("overview");
-  const [settingsVisited, setSettingsVisited] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const requested = params.get("section");
+  const section = isAdminSection(requested) ? requested : "overview";
+  const [settingsVisited, setSettingsVisited] = useState(section === "settings");
+  useEffect(() => { if (section === "settings") setSettingsVisited(true); }, [section]);
+  const navigate = (value: string) => {
+    if (!isAdminSection(value)) return;
+    if (value === "settings") setSettingsVisited(true);
+    setParams((next) => { if (value === "overview") next.delete("section"); else next.set("section", value); return next; });
+  };
   const queryClient = useQueryClient();
   const state = useQuery({ queryKey: STATE_KEY, queryFn: ({ signal }) => api.adminState(signal), retry: false, gcTime: 0, refetchInterval: pollApi(30_000) });
   const tools = useQuery({ queryKey: TOOLS_KEY, queryFn: ({ signal }) => api.adminTools(signal), retry: false, gcTime: 0, refetchInterval: pollApi(30_000) });
+  const bot = useBotAdmin("state", onUnauthorized);
+  const botActions = useBotAdminActions(onUnauthorized);
   const action = useMutation({
     mutationFn: (a: AdminAction) => api.adminAction(a),
     onSuccess: (next: AdminState) => {
@@ -137,36 +152,33 @@ function Dashboard({ profile, onUnauthorized }: { profile: NonNullable<AdminSess
     <TextureButton className="w-auto" onClick={() => state.refetch()}>Try again</TextureButton>
   </div>;
   const pending = tools.data?.filter((tool) => tool.status !== "approved").length;
+  const counts = { ...botPending(bot.data), tools: pending };
   const hidden = state.data.members.filter((member) => member.hidden).length;
   return <div className="min-w-0 space-y-6">
     <div className="space-y-2">
       <h1 className="text-2xl font-medium tracking-[-0.03em]">Admin</h1>
-      <p className="text-sm text-t3">{formatFull(state.data.members.length - hidden)} visible members · {formatFull(hidden)} hidden{pending !== undefined ? ` · ${formatFull(pending)} tools awaiting review` : ""}</p>
+      <p className="text-sm text-t3">{formatFull(state.data.members.length - hidden)} visible members · {formatFull(hidden)} hidden{pending !== undefined ? ` · ${formatFull(pending)} tools awaiting review` : ""}{counts.repositories !== undefined ? ` · ${formatFull(counts.repositories)} repos awaiting review` : ""}</p>
     </div>
-    <Tabs value={section} onValueChange={(value) => { if (value === "settings") setSettingsVisited(true); setSection(value); }}>
-      <TabsList aria-label="Admin sections" className="mb-6 grid h-auto w-full grid-cols-2 rounded-[24px] sm:inline-flex sm:w-auto sm:rounded-full">
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="overview">Overview</TabsTrigger>
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="members">Members</TabsTrigger>
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="tools">Tools{pending ? ` (${pending})` : ""}</TabsTrigger>
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="events">Events</TabsTrigger>
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="community">Community</TabsTrigger>
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="blog">Blog</TabsTrigger>
-        <TabsTrigger className="min-h-11 min-w-0 rounded-full focus-visible:ring-2 focus-visible:ring-foreground/40 data-[state=active]:bg-foreground/[0.1]" value="settings">Settings</TabsTrigger>
-      </TabsList>
-      <TabsContent value="overview"><AdminAnalytics onUnauthorized={onUnauthorized} onReviewTools={() => setSection("tools")} /></TabsContent>
+    <Tabs value={section} onValueChange={navigate} orientation="vertical" className="grid min-w-0 items-start gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
+      <AdminNavigation section={section} navigate={navigate} counts={counts} />
+      <div className="min-w-0">
+      <TabsContent value="overview" className="space-y-8"><AdminQuickActions data={bot.data} tools={pending} unavailable={bot.isError} navigate={navigate} retry={() => void bot.refetch()} /><AdminAnalytics onUnauthorized={onUnauthorized} onReviewTools={() => navigate("tools")} /></TabsContent>
       <TabsContent value="members"><FadeIn><Members members={state.data.members} busy={action.isPending} onAction={(a) => action.mutate(a)} /></FadeIn></TabsContent>
       <TabsContent value="events"><Suspense fallback={<ContentSkeleton label="Loading events…" />}><AdminEvents onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
       <TabsContent value="tools"><FadeIn><ToolModeration onUnauthorized={onUnauthorized} /></FadeIn></TabsContent>
       <TabsContent value="community"><Suspense fallback={<ContentSkeleton label="Loading community moderation…" />}><AdminForum profile={profile} onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
       <TabsContent value="blog"><Suspense fallback={<ContentSkeleton label="Loading blog review…" />}><AdminBlog profile={profile} onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
       <TabsContent value="settings" forceMount={settingsVisited || undefined} hidden={section !== "settings"}><FadeIn><div className="space-y-6"><Settings config={state.data.config} saving={action.isPending} onSave={(config) => action.mutate({ action: "config", config })} /><Suspense fallback={<SettingsSkeleton />}><AdminBotSettings onUnauthorized={onUnauthorized} /></Suspense></div></FadeIn></TabsContent>
+      {ADMIN_GROUPS[1].sections.map(([value]) => <TabsContent key={value} value={value}>{bot.data ? <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3">{botActions.needsRefresh && <p className="text-sm text-t2" role="status">The last result is uncertain. Refresh and review the data before another action.</p>}<TextureButton type="button" variant="minimal" className="min-h-11 w-auto" disabled={bot.isFetching || botActions.busy} onClick={() => void botActions.refresh()}>Refresh WhatsApp data</TextureButton></div><Suspense fallback={<ContentSkeleton label="Loading WhatsApp management…" />}><BotManagement section={value as BotSection} data={bot.data} actions={botActions} onUnauthorized={onUnauthorized} settings={() => navigate("settings")} /></Suspense></div> : bot.isPending ? <ContentSkeleton label="Loading WhatsApp management…" /> : <div className="space-y-3 py-5"><p className="text-sm text-t3">WhatsApp management couldn't be loaded.</p><TextureButton type="button" variant="minimal" className="min-h-11 w-auto" onClick={() => bot.refetch()}>Retry WhatsApp management</TextureButton></div>}</TabsContent>)}
+      </div>
     </Tabs>
   </div>;
 }
 
 /** Tab content eases in on switch. */
 function FadeIn({ children }: { children: React.ReactNode }) {
-  return <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.2, 0.7, 0.2, 1] }}>{children}</motion.div>;
+  const reduced = useReducedMotion();
+  return <motion.div initial={reduced ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduced ? 0 : 0.25, ease: [0.2, 0.7, 0.2, 1] }}>{children}</motion.div>;
 }
 
 const WEIGHT_FIELDS: { key: keyof Weights; label: string }[] = [

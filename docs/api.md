@@ -92,6 +92,12 @@ Polling respects `Retry-After`, retains existing results while waiting and resum
 
 The server derives `/api/v1/settings` from its membership URL and uses the separate runtime-only `WHATSAPP_ADMIN_TOKEN`. Membership credentials do not grant settings access. Unknown message variables, missing required values and out-of-range controls return 400. A stale settings version returns 409 without a partial save. Request bodies are bounded to 1 MiB; other endpoints keep their existing limits. Missing bot admin configuration or an unavailable/invalid upstream response returns 503 without exposing credentials.
 
+### WhatsApp administration
+
+`GET /api/bot-admin?resource=state|status|groups|joins` exposes the bot's management queues, connection status and private pairing QR, available groups or pending joins to an approved admin. `POST /api/bot-admin` accepts the `BotAdminAction` union in `shared/bot-admin.ts`, with the admin cookie, canonical Origin, JSON and `X-OpenCircle-Admin: 1`. It covers repository/project reviews, feedback, breaks, moderation, joins, group overrides, updates, delivery/pin recovery and phone linking. Sensitive actions require explicit confirmation; repository approval also requires licence and permission review. Configuration remains versioned through `/api/bot-settings`.
+
+The website calls the bot's `/api/v1/admin/*` routes using its server-only `WHATSAPP_ADMIN_TOKEN`. Responses are private/no-store and projected to known fields, with a 6 MiB response ceiling and the existing 4 KiB request limit. Rejected decisions preserve 400/404/409/429 statuses. An ambiguous write result returns 503 with `bot_admin_uncertain`; the interface blocks further bot actions until an explicit successful refresh and never automatically retries the write. Reads wait for already accepted bridge writes to settle. Release the bot before the website; no schema migration is needed.
+
 ## Community forum
 
 `GET /api/forum` requires a signed-in GitHub account, a verified participation link and a current membership check. Responses, including failures, are never publicly cached. Use `kind=discussion|question`, `page`, `search` (up to 150 characters), `category`, `status=open|resolved` and `mine=1` for feeds. `mine=1` includes only the viewer's submissions. `id=<UUID>&page=<number>` returns a thread and a page of comments and one-level replies. Feeds and comments have 15 items per page; reply pages also include their parent comments for context. Hidden parents and other members' unpublished content return 404.

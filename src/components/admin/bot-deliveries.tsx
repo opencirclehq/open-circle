@@ -1,0 +1,12 @@
+import type { CoordinationAdminState } from "@shared/coordination";
+import { BotConfirm, BotItem, BotLink, type BotActions } from "./bot-controls";
+import { BotQueue } from "./bot-queue";
+
+export function BotDeliveries({ data, actions }: { data: CoordinationAdminState; actions: BotActions }) {
+  const pins = data.community?.repositories.filter((repo) => repo.pinStatus === "uncertain") ?? [];
+  return <div className="space-y-5"><BotQueue title="Unconfirmed deliveries" items={data.outbox} searchText={(entry) => `${entry.kind} ${entry.recipient} ${entry.text}`} empty="No uncertain deliveries. Any message with an unknown outcome will appear here for review." busy={actions.busy}>
+    {(entry) => <BotItem key={entry.id} title={`${entry.kind.replace(/-/g, " ")} · ${entry.recipient}`} detail={`${new Date(entry.createdAt).toLocaleString("en")}\n${entry.text}${entry.error ? `\n${entry.error}` : ""}`}><div className="flex flex-wrap gap-2"><BotConfirm label="Confirm sent" title="Was this message sent?" description={`Check the chat with ${entry.recipient} and confirm this exact message was delivered.`} input={() => ({ action: "delivery", id: entry.id, delivered: true, confirmed: true })} actions={actions} /><BotConfirm label="Confirm not sent & cancel" title="Cancel this delivery?" description="Confirm in WhatsApp that this message was not sent. It will be cancelled without an automatic retry." input={() => ({ action: "delivery", id: entry.id, delivered: false, confirmed: true })} actions={actions} /></div></BotItem>}
+  </BotQueue><BotQueue title="Uncertain repository pins" items={pins} searchText={(repo) => `${repo.fullName} ${repo.owner}`} empty="No repository pins need review." busy={actions.busy}>
+    {(repo) => <BotItem key={repo.id} title={repo.fullName} detail="Check the announcement in WhatsApp before recording the pin outcome."><BotLink href={repo.url} /><div className="flex flex-wrap gap-2"><BotConfirm label="Confirm pin exists" title={`Is ${repo.fullName} pinned?`} description="Confirm in WhatsApp that the repository announcement is pinned." input={() => ({ action: "repository-pin", id: repo.id, pinned: true, confirmed: true })} actions={actions} /><BotConfirm label="Confirm pin failed" title="Record the failed pin?" description="Confirm the announcement was not pinned. The bot will skip this pin without retrying it." input={() => ({ action: "repository-pin", id: repo.id, pinned: false, confirmed: true })} actions={actions} /></div></BotItem>}
+  </BotQueue></div>;
+}
