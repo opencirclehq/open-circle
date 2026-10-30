@@ -20,14 +20,16 @@ const clients:QueryClient[]=[];
 
 it('shows weekly group interactions alongside confirmed help and preserves genuine zero counts',async()=>{
   const counts={messages:0,replies:0,media:0,pollVotes:2,messagesReactedTo:3,reactionAdds:4,reactionRemovals:1,reactionsReceived:0};
-  mount({...initial,activity:{...initial.activity,engagement:{startedAt:1,week:'2026-10-19',total:counts,weekly:counts,warnings:2,enforcement:true}}});
+  mount({...initial,activity:{...initial.activity,engagement:{startedAt:1,week:'2026-10-19',total:{...counts,messages:12,messagesReactedTo:8},weekly:counts,warnings:2,enforcement:true}}});
   await screen.findByText('In the group this week');
   const list=screen.getByText('Messages sent').closest('dl')!;
   expect(within(list).getByText('Messages sent').nextElementSibling?.textContent).toBe('0');
   expect(within(list).getByText('Messages reacted to').nextElementSibling?.textContent).toBe('3');
   expect(within(list).getByText('Poll votes').nextElementSibling?.textContent).toBe('2');
   expect(screen.getByText(/2\/3 inactivity warnings this week/)).toBeTruthy();
-  expect(screen.getByText('Confirmed contributions')).toBeTruthy();
+  expect(screen.getByText('Confirmed feedback')).toBeTruthy();
+  expect(screen.getByText(/Group reactions do not earn leaderboard points/)).toBeTruthy();
+  expect(screen.getByText(/Recorded totals: 12 messages, 8 messages reacted to/)).toBeTruthy();
 });
 
 it('does not display unrecorded group activity as zero before tracking starts',async()=>{
@@ -35,6 +37,23 @@ it('does not display unrecorded group activity as zero before tracking starts',a
   mount({...initial,activity:{...initial.activity,engagement:{startedAt:null,week:'2026-10-19',total:counts,weekly:counts,warnings:0,enforcement:false}}});
   await screen.findByText('Your activity');
   expect(screen.queryByText('Messages sent')).toBeNull();
+  expect(screen.getByText(/Group message and reaction recording has not started/)).toBeTruthy();
+});
+
+it('shows star support with zero confirmed feedback and distinguishes verified zero from unavailable star history',async()=>{
+  mount({...initial,activity:{...initial.activity,contributions:0,starSupport:{members:3,points:60,updatedAt:Date.now()}}});
+  await screen.findByText('Repository star support');
+  expect(screen.getByText('Members supported').nextElementSibling?.textContent).toBe('3');
+  expect(screen.getByText('Leaderboard points from stars').nextElementSibling?.textContent).toBe('60');
+  expect(screen.getByRole('progressbar',{name:'Confirmed feedback'}).getAttribute('aria-valuenow')).toBe('0');
+  expect(screen.queryByText(/Star support is waiting/)).toBeNull();
+});
+
+it('shows a completed GitHub refresh with no eligible stars as an honest zero',async()=>{
+  mount({...initial,activity:{...initial.activity,starSupport:{members:0,points:0,updatedAt:Date.now()}}});
+  await screen.findByText('Members supported');
+  expect(screen.getByText('Members supported').nextElementSibling?.textContent).toBe('0');
+  expect(screen.getByText('Leaderboard points from stars').nextElementSibling?.textContent).toBe('0');
 });
 
 it('lets a member record repo help, focuses the feedback form and submits for confirmation',async()=>{

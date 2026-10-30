@@ -42,10 +42,10 @@ it("keeps the chosen appearance across pages and switches the participation acti
   await user.click(screen.getByRole("button", { name: "Group participation" }));
   await screen.findByRole("heading", { name: "Your activity" });
   expect(screen.getByRole("combobox", { name: "Appearance" }).textContent).toBe("Light");
-  expect(screen.getByRole("progressbar", { name: "Confirmed contributions" }).getAttribute("aria-valuenow")).toBe("1");
+  expect(screen.getByRole("progressbar", { name: "Confirmed feedback" }).getAttribute("aria-valuenow")).toBe("1");
   await user.click(screen.getByRole("combobox", { name: "Appearance" }));
   await user.click(screen.getByRole("option", { name: "Dark" }));
   expect(document.documentElement.classList.contains("dark")).toBe(true);
   expect(localStorage.getItem(THEME_KEY)).toBe("dark");
-  expect(screen.getByRole("progressbar", { name: "Confirmed contributions" }).getAttribute("aria-valuenow")).toBe("1");
+  expect(screen.getByRole("progressbar", { name: "Confirmed feedback" }).getAttribute("aria-valuenow")).toBe("1");
 });

@@ -113,6 +113,7 @@ export interface InteractionCounts {
 }
 
 export interface ActivitySummary {
+  starSupport?: { members: number | null; points: number | null; updatedAt: number | null };
   engagement?: {
     startedAt: number | null; week: string; warnings: number; enforcement: boolean;
     total: InteractionCounts; weekly: InteractionCounts;
