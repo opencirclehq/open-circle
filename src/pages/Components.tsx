@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Widget4Icon } from "@solar-icons/react/bold-duotone";
-import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, CopyIcon, DocumentTextIcon, MagnifierIcon, MonitorIcon, MoonIcon, RestartIcon, SmartphoneIcon, Sun2Icon, TabletIcon } from "@solar-icons/react/linear";
+import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, CopyIcon, DocumentTextIcon, MagnifierIcon, MoonIcon, RestartIcon, Sun2Icon } from "@solar-icons/react/linear";
 import { AccountCorner } from "@/components/account-corner";
 import { Dock } from "@/components/dock";
 import { CodeView, copyText } from "@/components/library/code-view";
@@ -104,18 +104,21 @@ function Library() {
 function ComponentCard({ item }: { item: LibraryItem }) {
   const wide = item.card === "wide";
   return (
-    <Link to={`/components/${item.slug}`} className="surface group flex h-full flex-col overflow-hidden rounded-[28px] transition-transform duration-300 hover:-translate-y-0.5" aria-label={`${item.name}: ${item.description}`}>
-      <div className={cn("relative overflow-hidden bg-[#0b0d12]", wide ? "h-56 sm:h-72 lg:h-[22rem]" : "h-64 lg:h-[22rem]")}>
+    <Link to={`/components/${item.slug}`} className="surface group flex h-full flex-col rounded-[28px] p-2 transition-transform duration-300 hover:-translate-y-0.5" aria-label={`${item.name}: ${item.description}`}>
+      {/* The preview sits inset and rounded; its tags float in the top-right corner. */}
+      <div className={cn("relative overflow-hidden rounded-[22px] bg-[#0b0d12]", wide ? "h-56 sm:h-72 lg:h-[22rem]" : "h-64 lg:h-[22rem]")}>
         {wide
           ? <ScaledPreview width={1120} className="h-full w-full"><item.Demo theme="dark" /></ScaledPreview>
           : <div className="pointer-events-none flex h-full items-center justify-center" aria-hidden inert><item.Demo theme="dark" /></div>}
-      </div>
-      <div className="flex items-end justify-between gap-3 p-5">
-        <div className="min-w-0">
-          <p className="truncate font-medium tracking-tight">{item.name}</p>
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-t3">{item.description}</p>
+        <div className="absolute right-3 top-3 flex max-w-[70%] flex-wrap justify-end gap-1">
+          {[item.category, ...item.tags.slice(0, 2)].map((tag) => (
+            <span key={tag} className="rounded-full bg-black/45 px-2.5 py-1 text-[11px] text-white/85 backdrop-blur-md">{tag}</span>
+          ))}
         </div>
-        <span className="shrink-0 rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[11px] text-t2">{item.category}</span>
+      </div>
+      <div className="px-3 pb-3 pt-4">
+        <p className="truncate font-medium tracking-tight">{item.name}</p>
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-t3">{item.description}</p>
       </div>
     </Link>
   );
@@ -123,14 +126,10 @@ function ComponentCard({ item }: { item: LibraryItem }) {
 
 /* ---------- Preview page ---------- */
 
-type Device = "full" | "tablet" | "mobile";
-const DEVICE_WIDTH: Record<Device, string> = { full: "100%", tablet: "768px", mobile: "390px" };
-
 function Detail({ slug }: { slug: string }) {
   const item = findItem(slug);
   const index = item ? LIBRARY.indexOf(item) : -1;
   const [tab, setTab] = useState("preview");
-  const [device, setDevice] = useState<Device>("full");
   const [canvas, setCanvas] = useState<CanvasTheme>("dark");
   const [run, setRun] = useState(0);
 
@@ -154,10 +153,11 @@ function Detail({ slug }: { slug: string }) {
   const next = LIBRARY[index + 1];
 
   return (
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_13rem] lg:gap-10">
+      {/* First in the page so phones get the chip row on top; on wide screens it sits on the right. */}
       <ComponentNav current={item.slug} />
 
-      <div className="min-w-0 space-y-5">
+      <div className="min-w-0 space-y-5 lg:order-first">
         <div className="space-y-2">
           <Link to="/components" className="inline-flex min-h-9 items-center gap-1 text-sm text-t3 hover:text-foreground lg:hidden">
             <AltArrowLeftIcon className="size-4" aria-hidden />All components
@@ -185,37 +185,31 @@ function Detail({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <TabsContent value="preview" className="mt-3 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2" role="toolbar" aria-label="Test environment">
-              <div className="hidden items-center gap-1 rounded-full bg-foreground/[0.05] p-1 sm:flex" role="group" aria-label="Preview width">
-                {([["full", "Full width", MonitorIcon], ["tablet", "Tablet", TabletIcon], ["mobile", "Mobile", SmartphoneIcon]] as const).map(([value, label, Icon]) => (
-                  <button key={value} type="button" aria-label={label} title={label} aria-pressed={device === value} onClick={() => setDevice(value)}
-                    className={cn("flex size-8 items-center justify-center rounded-full transition-colors", device === value ? "bg-foreground/[0.1] text-foreground" : "text-t3 hover:text-foreground")}>
-                    <Icon className="size-4" aria-hidden />
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-1">
+          <TabsContent value="preview" className="mt-3">
+            <div
+              className={cn("relative overflow-x-auto rounded-[28px] p-2 transition-colors duration-300 sm:p-4", canvas === "dark" ? "bg-[#0b0d12]" : "bg-[#f3f5f9]")}
+              style={{ backgroundImage: `radial-gradient(${canvas === "dark" ? "rgba(255,255,255,.06)" : "rgba(15,23,42,.08)"} 1px, transparent 1px)`, backgroundSize: "18px 18px" }}
+            >
+              <div
+                role="toolbar"
+                aria-label="Preview controls"
+                className={cn("absolute right-3 top-3 z-20 flex items-center gap-0.5 rounded-full p-1 backdrop-blur-md", canvas === "dark" ? "bg-white/[0.08] text-white/70" : "bg-black/[0.06] text-slate-600")}
+              >
                 <button type="button" aria-label={canvas === "dark" ? "Light canvas" : "Dark canvas"} title={canvas === "dark" ? "Light canvas" : "Dark canvas"} onClick={() => setCanvas(canvas === "dark" ? "light" : "dark")}
-                  className="flex size-9 items-center justify-center rounded-full text-t3 transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
+                  className={cn("flex size-8 items-center justify-center rounded-full transition-colors", canvas === "dark" ? "hover:bg-white/10 hover:text-white" : "hover:bg-black/[0.06] hover:text-slate-900")}>
                   {canvas === "dark" ? <Sun2Icon className="size-4" aria-hidden /> : <MoonIcon className="size-4" aria-hidden />}
                 </button>
                 <button type="button" aria-label="Replay" title="Replay" onClick={() => setRun((value) => value + 1)}
-                  className="flex size-9 items-center justify-center rounded-full text-t3 transition-colors hover:bg-foreground/[0.06] hover:text-foreground">
+                  className={cn("flex size-8 items-center justify-center rounded-full transition-colors", canvas === "dark" ? "hover:bg-white/10 hover:text-white" : "hover:bg-black/[0.06] hover:text-slate-900")}>
                   <RestartIcon className="size-4" aria-hidden />
                 </button>
               </div>
-            </div>
-            <div
-              className={cn("overflow-x-auto rounded-[28px] p-2 transition-colors duration-300 sm:p-4", canvas === "dark" ? "bg-[#0b0d12]" : "bg-[#f3f5f9]")}
-              style={{ backgroundImage: `radial-gradient(${canvas === "dark" ? "rgba(255,255,255,.06)" : "rgba(15,23,42,.08)"} 1px, transparent 1px)`, backgroundSize: "18px 18px" }}
-            >
               <motion.div
                 key={`${item.slug}-${run}`}
                 initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0, width: DEVICE_WIDTH[device] }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={SPRING}
-                className="mx-auto flex min-h-[22rem] max-w-full items-center justify-center"
+                className="flex min-h-[22rem] w-full items-center justify-center pt-10 sm:pt-6"
                 data-testid="preview-stage"
               >
                 <div className="w-full"><item.Demo theme={canvas} /></div>
@@ -259,7 +253,7 @@ function IconAction({ label, onClick, children }: { label: string; onClick: () =
 /** Every component, for scrolling between them: a sticky column on wide screens, a swipeable row on phones. */
 function ComponentNav({ current }: { current: string }) {
   return (
-    <aside aria-label="Components" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+    <aside aria-label="Components" className="min-w-0 lg:sticky lg:top-24 lg:order-last lg:self-start">
       <Link to="/components" className="mb-3 hidden items-center gap-1 text-sm text-t3 hover:text-foreground lg:inline-flex">
         <AltArrowLeftIcon className="size-4" aria-hidden />All components
       </Link>
