@@ -29,6 +29,7 @@ import * as forum from "../api/forum.js";
 import * as forumAdmin from "../api/forum-admin.js";
 import * as community from "../api/community.js";
 import * as tools from "../api/tools.js";
+import * as components from "../api/components.js";
 import * as repositoryStars from "../api/repository-stars.js";
 import * as vote from "../api/vote.js";
 import * as board from "../api/board.js";
@@ -81,6 +82,7 @@ const routes: Record<string, Record<string, Handler | undefined>> = {
   "blog-image": blogImage as Record<string, Handler>,
   community: community as Record<string, Handler>,
   tools: tools as Record<string, Handler>,
+  components: components as Record<string, Handler>,
   vote: vote as Record<string, Handler>,
   "repository-stars": repositoryStars as Record<string, Handler>,
   board: board as Record<string, Handler>,

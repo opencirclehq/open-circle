@@ -36,6 +36,7 @@ import { useBotAdmin, useBotAdminActions } from "@/hooks/use-bot-admin";
 import { ADMIN_GROUPS, botPending, isAdminSection, type BotSection } from "@/lib/admin-navigation";
 import { AdminNavigation } from "@/components/admin/navigation";
 import { AdminQuickActions } from "@/components/admin/quick-actions";
+import { COMPONENTS_KEY, ComponentReview } from "@/components/admin/component-review";
 
 const AdminEvents = lazy(() => import("@/components/events/admin-events"));
 const AdminForum = lazy(() => import("@/components/forum/admin-forum"));
@@ -125,6 +126,7 @@ function Dashboard({ profile, onUnauthorized }: { profile: NonNullable<AdminSess
   const queryClient = useQueryClient();
   const state = useQuery({ queryKey: STATE_KEY, queryFn: ({ signal }) => api.adminState(signal), retry: false, gcTime: 0, refetchInterval: pollApi(30_000) });
   const tools = useQuery({ queryKey: TOOLS_KEY, queryFn: ({ signal }) => api.adminTools(signal), retry: false, gcTime: 0, refetchInterval: pollApi(30_000) });
+  const components = useQuery({ queryKey: COMPONENTS_KEY, queryFn: ({ signal }) => api.adminComponents(signal), retry: false, gcTime: 0, refetchInterval: pollApi(30_000) });
   const bot = useBotAdmin("state", onUnauthorized);
   const botActions = useBotAdminActions(onUnauthorized);
   const action = useMutation({
@@ -152,18 +154,20 @@ function Dashboard({ profile, onUnauthorized }: { profile: NonNullable<AdminSess
     <TextureButton className="w-auto" onClick={() => state.refetch()}>Try again</TextureButton>
   </div>;
   const pending = tools.data?.filter((tool) => tool.status !== "approved").length;
-  const counts = { ...botPending(bot.data), tools: pending };
+  const pendingComponents = components.data?.filter((item) => item.status === "pending").length;
+  const counts = { ...botPending(bot.data), tools: pending, components: pendingComponents };
   const hidden = state.data.members.filter((member) => member.hidden).length;
   return <div className="min-w-0 space-y-6">
     <div className="space-y-2">
       <h1 className="text-2xl font-medium tracking-[-0.03em]">Admin</h1>
-      <p className="text-sm text-t3">{formatFull(state.data.members.length - hidden)} visible members · {formatFull(hidden)} hidden{pending !== undefined ? ` · ${formatFull(pending)} tools awaiting review` : ""}{counts.repositories !== undefined ? ` · ${formatFull(counts.repositories)} repos awaiting review` : ""}</p>
+      <p className="text-sm text-t3">{formatFull(state.data.members.length - hidden)} visible members · {formatFull(hidden)} hidden{pending !== undefined ? ` · ${formatFull(pending)} tools awaiting review` : ""}{pendingComponents ? ` · ${formatFull(pendingComponents)} components awaiting review` : ""}{counts.repositories !== undefined ? ` · ${formatFull(counts.repositories)} repos awaiting review` : ""}</p>
     </div>
     <Tabs value={section} onValueChange={navigate} orientation="vertical" className="grid min-w-0 items-start gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
       <AdminNavigation section={section} navigate={navigate} counts={counts} />
       <div className="min-w-0">
       <TabsContent value="overview" className="space-y-8"><AdminQuickActions data={bot.data} tools={pending} unavailable={bot.isError} navigate={navigate} retry={() => void bot.refetch()} /><AdminAnalytics onUnauthorized={onUnauthorized} onReviewTools={() => navigate("tools")} /></TabsContent>
       <TabsContent value="members"><FadeIn><Members members={state.data.members} busy={action.isPending} onAction={(a) => action.mutate(a)} /></FadeIn></TabsContent>
+      <TabsContent value="components"><FadeIn><ComponentReview onUnauthorized={onUnauthorized} /></FadeIn></TabsContent>
       <TabsContent value="events"><Suspense fallback={<ContentSkeleton label="Loading events…" />}><AdminEvents onUnauthorized={onUnauthorized} /></Suspense></TabsContent>
       <TabsContent value="tools"><FadeIn><ToolModeration onUnauthorized={onUnauthorized} /></FadeIn></TabsContent>
       <TabsContent value="community"><Suspense fallback={<ContentSkeleton label="Loading community moderation…" />}><AdminForum profile={profile} onUnauthorized={onUnauthorized} /></Suspense></TabsContent>

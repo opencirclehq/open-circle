@@ -61,6 +61,14 @@ export const SEO_PAGES: readonly SeoPage[] = [
     heading: "Blog",
     index: true,
   },
+  {
+    path: "/components",
+    title: `Components · ${BRAND_NAME}`,
+    description: "Copy-paste React components from Open Source Circle. Preview them live, test them at phone and desktop widths, and copy the code or Markdown.",
+    summary: "Copy-paste React components from the circle.",
+    heading: "Components",
+    index: true,
+  },
   { path: "/blog/mine", title: `Your posts · ${BRAND_NAME}`, description: "Your OpenCircle blog drafts and submissions.", summary: "Your blog drafts and submissions.", heading: "Your posts", index: false },
   { path: "/blog/write", title: `Write a post · ${BRAND_NAME}`, description: "Write an OpenCircle blog post for review.", summary: "Write a blog post for review.", heading: "Write a post", index: false },
   {
@@ -113,6 +121,7 @@ export const SITE_LINKS = [
   { path: "/tools", label: "Developer tools" },
   { path: "/how-it-works", label: "How ranking works" },
   { path: "/blog", label: "Blog" },
+  { path: "/components", label: "Components" },
   { path: "/community", label: "Community" },
   { path: "/participation", label: "Group participation" },
 ] as const;
@@ -149,7 +158,8 @@ export function seoDocument(pathname: string, originInput = DEFAULT_SITE_URL): S
   const page = byPath.get(path.startsWith("/community/") ? "/community" : path)
     ?? (/^\/events\/[a-z0-9-]+$/.test(path) ? { ...byPath.get("/events")!, path }
       : /^\/blog\/write\/[a-f\d-]{36}$/i.test(path) ? { ...byPath.get("/blog/write")!, path }
-        : blogSlugFromPath(path) ? { ...byPath.get("/blog")!, path } : NOT_FOUND);
+        : blogSlugFromPath(path) ? { ...byPath.get("/blog")!, path }
+          : /^\/components\/[a-z0-9-]+$/.test(path) ? { ...byPath.get("/components")!, path } : NOT_FOUND);
   const canonicalPath = path.startsWith("/community/") ? path : page.path || (path.startsWith("/") ? path : "/");
   return {
     ...page,
