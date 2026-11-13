@@ -37,9 +37,9 @@ export default function Events() {
   const access = error instanceof ApiError && error.status === 403;
   const data = (admin || (!!identity && !community.isError)) ? query.data : undefined;
   useEffect(() => { if (slug && data && !("events" in data) && slug !== data.slug) navigate({ pathname: `/events/${data.slug}`, search: location.search, hash: location.hash }, { replace: true }); }, [slug, data, navigate, location.search, location.hash]);
-  return <div className="relative min-h-dvh"><div className="app-backdrop" aria-hidden /><AccountCorner /><main className="page-container relative z-10 min-w-0 pb-40 pt-28">
+  return <div className="relative min-h-dvh"><div className="app-backdrop" aria-hidden /><AccountCorner /><main className={`page-container relative z-10 min-w-0 pb-40 ${slug ? "pt-28" : "pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-28"}`}>
     <div className="mx-auto max-w-4xl space-y-6">
-      {slug ? <Link className="inline-flex min-h-11 items-center text-sm text-t3 underline underline-offset-4" to="/events">All events</Link> : <h1 className="text-3xl font-medium tracking-[-0.03em]">Community</h1>}
+      {slug ? <Link className="inline-flex min-h-11 items-center text-sm text-t3 underline underline-offset-4" to="/events">All events</Link> : <h1 className="flex min-h-11 items-center pr-28 text-[22px] font-medium tracking-[-0.03em] min-[360px]:text-2xl sm:min-h-0 sm:pr-0 sm:text-3xl">Community</h1>}
       <CommunitySections section="events">
       {!slug && <h2 className="my-5 text-xl font-medium">Events</h2>}
       {admin && <p role="status" className="text-sm text-warn">Admin preview · {data && "published" in data && data.published ? "Published" : "Draft / unpublished"}</p>}
@@ -76,9 +76,9 @@ function EventList({ events, now, schedule, admin, onBrowse }: { events: EventVi
       )}
     </EmptyState>
   );
-  return <ul className="divide-y divide-foreground/10">{visible.map(e => <li key={e.id} className="py-6"><div className="flex min-w-0 flex-col gap-5 sm:flex-row">
-    <div className="min-w-0 flex-1 space-y-4 sm:order-last"><Link to={`/events/${e.slug}`} className="group block space-y-2 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"><p className="text-xs text-t3">{eventStatus(e,now)}</p><h2 className="break-words text-xl font-medium group-hover:underline">{e.content.title}</h2><p className="text-sm text-t3">{eventDate(e.content.startsAt,e.content.timezone)} · {e.content.timezone}</p><p className="break-words text-sm leading-relaxed text-t2">{e.content.summary}</p><p className="text-sm text-t3">{e.content.host}</p>{e.recording && <p className="text-xs text-t3">Recording · {fileSize(e.recording.size)}</p>}</Link>
-    {e.published && <div className="flex flex-wrap items-center gap-3">{!admin && eventRegistrationOpen(e, now) && <TextureButton asChild size="lg" innerClassName="!bg-none !bg-foreground !text-background"><Link to={`/events/${e.slug}#register`} aria-label={`Register for ${e.content.title}`}>Register</Link></TextureButton>}<ShareButton path={`/events/${e.slug}`} title={e.content.title} kind="event" /></div>}</div>
+  return <ul className="divide-y divide-foreground/10">{visible.map(e => <li key={e.id} className="py-6"><div className="flex min-w-0 flex-col items-start gap-5 sm:flex-row">
+    <div className="flex w-full min-w-0 flex-1 flex-col items-start gap-4 sm:order-last"><Link to={`/events/${e.slug}`} className="group block w-full space-y-2 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"><p className="text-xs text-t3">{eventStatus(e,now)}</p><h2 className="break-words text-xl font-medium group-hover:underline">{e.content.title}</h2><p className="text-sm text-t3">{eventDate(e.content.startsAt,e.content.timezone)} · {e.content.timezone}</p><p className="break-words text-sm leading-relaxed text-t2">{e.content.summary}</p><p className="text-sm text-t3">{e.content.host}</p>{e.recording && <p className="text-xs text-t3">Recording · {fileSize(e.recording.size)}</p>}</Link>
+    {e.published && <div className="flex max-w-full flex-wrap items-center justify-start gap-2" role="group" aria-label={`Actions for ${e.content.title}`}>{!admin && eventRegistrationOpen(e, now) && <TextureButton asChild size="lg" innerClassName="!bg-none !bg-foreground !text-background"><Link to={`/events/${e.slug}#register`} aria-label={`Register for ${e.content.title}`}>Register</Link></TextureButton>}<ShareButton path={`/events/${e.slug}`} title={e.content.title} kind="event" variant="filled" /></div>}</div>
     {e.cover && <EventCover key={e.cover.id} event={e} admin={admin} className="w-full self-start sm:mx-0 sm:w-56 sm:shrink-0" />}
   </div></li>)}</ul>;
 }

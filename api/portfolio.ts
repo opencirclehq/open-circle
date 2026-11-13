@@ -16,7 +16,7 @@ export function GET(req: Request): Promise<Response> {
     const profile = await requirePortfolioOwner(req);
     const record = await getPortfolioStore().readOwner(profile.id);
     await syncPortfolioAchievement(profile.login, record);
-    return json(portfolioEditorState(profile, record), 200, PORTFOLIO_HEADERS);
+    return json(await portfolioEditorState(profile, record), 200, PORTFOLIO_HEADERS);
   });
 }
 

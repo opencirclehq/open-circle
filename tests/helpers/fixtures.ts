@@ -21,6 +21,7 @@ export function repository(overrides: Partial<GithubRepository> = {}): GithubRep
 
 export function memberRecord(overrides: Partial<MemberRecord> = {}): MemberRecord {
   return {
+    githubId: 1,
     login: "octocat",
     displayLogin: "Octocat",
     nickname: "Octo",
@@ -66,7 +67,8 @@ export function publicMember(overrides: Partial<PublicMember> = {}): PublicMembe
 
 export function boardFixture(overrides: Partial<Board> = {}): Board {
   return {
-    rankingVersion: 6,
+    rankingVersion: 7,
+    communityCheckedAt: Date.now(),
     helpersCheckedAt: Date.now(),
     communityRepositoryCheckedAt: Date.now(),
     members: [],
@@ -100,6 +102,7 @@ export function githubRepository(index: number, overrides: Record<string, unknow
 export function githubOwner(overrides: Record<string, unknown> = {}) {
   return {
     __typename: "User",
+    databaseId: 1,
     login: "Octocat",
     avatarUrl: "https://avatars.githubusercontent.com/u/1",
     name: "Octo Cat",

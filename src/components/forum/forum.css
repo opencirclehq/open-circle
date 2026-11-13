@@ -29,5 +29,60 @@
 .forum-category { max-width: 100%; border-radius: 6px; padding: 4px 8px; background: hsl(var(--foreground) / .04); color: hsl(var(--t3)); font-size: 11px; line-height: 18px; overflow-wrap: anywhere; }
 .forum-post-content { margin: 16px 0 8px; }
 .forum-post .content-actions { margin-left: -10px; margin-right: -10px; }
-.forum-comments { scroll-margin-top: 32px; }
+.forum-comments { max-inline-size: 54rem; scroll-margin-top: 32px; }
 .forum-comments:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 6px; border-radius: 10px; }
+.forum-comments-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; font-size: 1.0625rem; font-weight: 600; letter-spacing: -.02em; }
+.forum-comments-count { color: hsl(var(--t3)); font-size: .875rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+.forum-comment, .forum-composer { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: start; gap: 12px; }
+.forum-comments .forum-comment-avatar { width: 36px; height: 36px; flex-shrink: 0; }
+.forum-comment-main { min-width: 0; }
+.forum-comment-header { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; margin: 1px 0 8px; }
+.forum-comment-author { min-width: 0; color: hsl(var(--foreground)); font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; }
+.forum-comment-time { color: hsl(var(--t3)); font-size: .75rem; line-height: 1.5; }
+.forum-comment .forum-body { max-inline-size: 72ch; line-height: 1.7; }
+.forum-comment .forum-body > * + * { margin-top: .8em; }
+.forum-comment-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.forum-comment-action { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 7px; border-radius: 9px; padding: 8px 12px; background: hsl(var(--foreground) / .06); color: hsl(var(--t2)); font-size: .8125rem; font-weight: 500; line-height: 20px; }
+.forum-comment-action:hover { background: hsl(var(--foreground) / .1); color: hsl(var(--foreground)); }
+.forum-comment-like-count { min-width: .5em; font-variant-numeric: tabular-nums; }
+.forum-comment-like[aria-pressed="true"] { background: hsl(var(--down) / .1); color: hsl(var(--down)); }
+.forum-comment-like[aria-pressed="true"]:hover { background: hsl(var(--down) / .16); }
+.forum-comment-action[aria-expanded="true"] { background: hsl(var(--foreground) / .12); color: hsl(var(--foreground)); }
+.forum-comment-report-action { margin-left: auto; background: transparent; color: hsl(var(--t3)); }
+.forum-comment-action:disabled, .forum-comment-submit:disabled { opacity: .5; cursor: not-allowed; }
+.forum-comment-action:focus-visible, .forum-comment-submit:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.forum-comment-list { display: grid; gap: 28px; margin-top: 28px; }
+.forum-comment-thread + .forum-comment-thread { border-top: 1px solid hsl(var(--foreground) / .08); padding-top: 28px; }
+.forum-comment-replies { display: grid; gap: 24px; margin: 24px 0 0 48px; padding-left: 16px; border-left: 2px solid hsl(var(--foreground) / .08); }
+.forum-comment-replies .forum-comment { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.forum-comment-replies .forum-comment-avatar { width: 28px; height: 28px; }
+.forum-composer-field { min-width: 0; padding: 12px; border-radius: 12px; background: hsl(var(--foreground) / .045); }
+.forum-composer-field:focus-within { outline: 1px solid hsl(var(--foreground) / .25); outline-offset: 0; }
+.forum-composer textarea { display: block; width: 100%; min-height: 76px; max-height: 360px; resize: vertical; border: 0; border-radius: 4px; background: transparent; padding: 2px 4px; color: hsl(var(--foreground)); font: inherit; font-size: .875rem; line-height: 1.7; }
+.forum-composer textarea::placeholder { color: hsl(var(--t3)); opacity: 1; }
+.forum-composer textarea:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.forum-composer-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 10px; }
+.forum-composer-hint { padding-left: 4px; color: hsl(var(--t3)); font-size: .75rem; }
+.forum-composer-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; margin-left: auto; }
+.forum-comment-submit { display: inline-flex; min-height: 44px; max-width: 100%; align-items: center; justify-content: center; gap: 8px; border-radius: 9px; padding: 10px 16px; background: hsl(var(--foreground)); color: hsl(var(--background)); font-size: .8125rem; font-weight: 600; line-height: 20px; }
+.forum-comment-submit:hover:not(:disabled) { background: hsl(var(--foreground) / .85); }
+.forum-reply-composer { margin: 20px 0 0 48px; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.forum-reply-composer .forum-comment-avatar { width: 28px; height: 28px; }
+.forum-reply-context { padding: 0 4px 8px; color: hsl(var(--t2)); font-size: .8125rem; overflow-wrap: anywhere; }
+.forum-comment-report { display: grid; gap: 12px; margin-top: 16px; padding: 16px; border-radius: 12px; background: hsl(var(--foreground) / .04); }
+.forum-comments-locked { display: flex; align-items: center; gap: 8px; padding: 12px 0; color: hsl(var(--t3)); font-size: .875rem; }
+.forum-comments-empty { margin: 24px 0 0 48px; color: hsl(var(--t3)); font-size: .875rem; }
+@media (max-width: 479px) {
+  .forum-comment, .forum-composer { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+  .forum-comments .forum-comment-avatar { width: 28px; height: 28px; }
+  .forum-comment-header { display: grid; gap: 2px; }
+  .forum-comment-replies { margin-left: 12px; padding-left: 12px; }
+  .forum-reply-composer { margin-left: 12px; }
+  .forum-composer-field { padding: 10px; }
+  .forum-composer textarea { font-size: 1rem; }
+  .forum-composer-hint { display: none; }
+  .forum-comment-action { gap: 6px; padding-inline: 10px; }
+  .forum-comment-report-action { min-width: 44px; }
+  .forum-comment-report-action span { display: none; }
+  .forum-comments-empty { margin-left: 38px; }
+}

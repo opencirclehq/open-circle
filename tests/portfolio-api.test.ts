@@ -126,10 +126,19 @@ it("serves long drafts, publication, tenant HTML and unpublishing through the re
     const base = `http://127.0.0.1:${address.port}`;
     vi.stubEnv("GITHUB_OAUTH_REDIRECT_URI", `${base}/api/auth-callback`); vi.stubEnv("PORTFOLIO_SUBDOMAINS_ENABLED", "1");
     const headers = { origin: base, "content-type": "application/json", cookie: `opencircle_github=${token}` };
-    const draft = { ...content(), readme: "A longer README. ".repeat(1000) };
-    expect((await fetch(`${base}/api/portfolio`, { method: "POST", headers, body: JSON.stringify({ action: "save", content: draft, version: 0 }) })).status).toBe(200);
+    const draft = { ...content(), readme: "A longer README. ".repeat(1000), skills: ["Continuous integration and deployment", "x".repeat(80)] };
+    const invalid = await fetch(`${base}/api/portfolio`, { method: "POST", headers, body: JSON.stringify({ action: "save", content: { ...draft, skills: ["x".repeat(81)] }, version: 0 }) });
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toMatchObject({ error: { code: "portfolio_invalid", field: "skills" } });
+    expect(await portfolios.readOwner(profile.id)).toBeNull();
+    const saved = await fetch(`${base}/api/portfolio`, { method: "POST", headers, body: JSON.stringify({ action: "save", content: draft, version: 0 }) });
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toMatchObject({ draft: { skills: draft.skills } });
     expect((await fetch(`${base}/p/alice`)).status).toBe(404);
     expect((await fetch(`${base}/api/portfolio`, { method: "POST", headers, body: JSON.stringify({ action: "publish", content: draft, version: 1 }) })).status).toBe(200);
+    const published = await fetch(`${base}/api/portfolio?slug=alice`);
+    expect(published.status).toBe(200);
+    expect(await published.json()).toMatchObject({ skills: draft.skills });
     const page = await new Promise<{ status: number | undefined; cache: string | undefined; html: string }>((resolve, reject) => {
       httpRequest(`${base}/`, { headers: { host: "alice.opencircle.cc" } }, (response) => {
         const chunks: Buffer[] = []; response.on("data", (chunk) => chunks.push(Buffer.from(chunk))); response.on("end", () => resolve({ status: response.statusCode, cache: response.headers["cache-control"], html: Buffer.concat(chunks).toString("utf8") }));

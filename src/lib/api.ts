@@ -9,9 +9,12 @@ import type {
   RegisterInput,
   RegisterResult,
 } from "@shared/types";
+import type { ComponentSubmission, ComponentSubmissionInput, ComponentSubmissionStatus } from "@shared/components";
 import type { CommunityState, CommunityTool, ToolInput, ToolVoteInput, ToolVoteResult, VoteInput, VoteResult } from "@shared/community";
 import type { LinkChallenge, ParticipationAction, ParticipationState } from "@shared/coordination";
 import type { AdminAnalytics, AnalyticsDays } from "@shared/analytics";
+import type { BotAdminAction, BotAdminResource, BotAdminResponses } from "@shared/bot-admin";
+import type { CoordinationAdminState } from "@shared/coordination";
 
 import type { RepositoryStar, RepositoryStarInput, RepositoryStars } from "@shared/repository-stars";
 
@@ -69,6 +72,8 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  botAdmin: <K extends BotAdminResource>(resource: K, signal?: AbortSignal) => request<BotAdminResponses[K]>(`/api/bot-admin?resource=${resource}`, { signal, cache: "no-store" }),
+  botAdminAction: (input: BotAdminAction) => request<CoordinationAdminState>("/api/bot-admin", { method: "POST", headers: { "x-opencircle-admin": "1" }, body: JSON.stringify(input) }),
   botSettings: (signal?: AbortSignal) => request<BotSettingsState>("/api/bot-settings", { signal, cache: "no-store" }),
   saveBotSettings: (input: BotSettingsInput) => request<BotSettingsState>("/api/bot-settings", { method: "POST", headers: { "x-opencircle-admin": "1" }, body: JSON.stringify(input) }),
   repositoryStars: (ids: string[], signal?: AbortSignal) => request<RepositoryStars>(`/api/repository-stars?${new URLSearchParams(ids.map((id) => ["id", id]))}`, { signal, cache: "no-store" }),
@@ -97,6 +102,18 @@ export const api = {
     body: JSON.stringify({ id, action: "approve" }),
   }),
   removeTool: (id: string) => request<{ ok: boolean }>("/api/tools", {
+    method: "DELETE",
+    headers: { "x-opencircle-admin": "1" },
+    body: JSON.stringify({ id }),
+  }),
+  submitComponent: (input: ComponentSubmissionInput) => request<{ id: string; status: ComponentSubmissionStatus }>("/api/components", { method: "POST", body: JSON.stringify(input) }),
+  adminComponents: (signal?: AbortSignal) => request<ComponentSubmission[]>("/api/components", { signal, cache: "no-store" }),
+  reviewComponent: (id: string, status: ComponentSubmissionStatus) => request<ComponentSubmission>("/api/components", {
+    method: "PATCH",
+    headers: { "x-opencircle-admin": "1" },
+    body: JSON.stringify({ id, status }),
+  }),
+  removeComponent: (id: string) => request<{ ok: boolean }>("/api/components", {
     method: "DELETE",
     headers: { "x-opencircle-admin": "1" },
     body: JSON.stringify({ id }),

@@ -1,4 +1,5 @@
 import type { RankingPeriod } from "./coordination.js";
+import type { CommunityActivityScore } from "./community-activity.js";
 
 export interface Weights {
   stars: number;
@@ -11,6 +12,7 @@ export interface Weights {
 }
 
 export interface GithubStats {
+  githubId?: number;
   /** GitHub's own casing. Compare lowercased. */
   login: string;
   name: string | null;
@@ -80,6 +82,8 @@ export interface PublicMember {
   starHelps?: number;
   helpedMembers?: number;
   githubScore?: number;
+  communityPoints?: number;
+  communityActivity?: CommunityActivityScore;
   /** Places gained (+) or lost (−) on the last move, if it happened in the last 24h. */
   delta: number;
   /** Joined in the last 24h. */
@@ -100,6 +104,8 @@ export interface InviteConfig {
 }
 
 export interface Board {
+  communityCheckedAt?: number;
+  communityDelayed?: boolean;
   rankingVersion?: number;
   helpersCheckedAt?: number;
   helpersUpdatedAt?: number;
@@ -128,6 +134,7 @@ export interface Preview {
   githubScore?: number;
   helpedMembers?: number;
   helperPoints?: number;
+  communityPoints?: number;
 }
 
 export interface RegisterInput {

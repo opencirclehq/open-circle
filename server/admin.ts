@@ -41,6 +41,8 @@ export async function adminState(store: Store, board?: Board): Promise<AdminStat
         nickname: r.nickname,
         avatarUrl: r.avatarUrl,
         score: pub?.score ?? 0,
+        communityPoints: pub?.communityPoints,
+        communityActivity: pub?.communityActivity,
         stars: r.stars,
         followers: r.followers,
         repos: r.repos,

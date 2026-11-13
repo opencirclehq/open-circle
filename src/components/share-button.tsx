@@ -3,7 +3,7 @@ import { CheckReadIcon, CopyIcon, ShareIcon } from "@solar-icons/react/linear";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import "./content-actions.css";
 
-export function ShareButton({ path, title, kind, variant = "plain" }: { path: string; title: string; kind: "discussion" | "question" | "event"; variant?: "plain" | "light" }) {
+export function ShareButton({ path, title, kind, variant = "plain" }: { path: string; title: string; kind: "discussion" | "question" | "event" | "post"; variant?: "plain" | "filled" | "light" }) {
   const [busy, setBusy] = useState(false);
   const [copiedPath, setCopiedPath] = useState("");
   const [manualLink, setManualLink] = useState("");
@@ -34,7 +34,7 @@ export function ShareButton({ path, title, kind, variant = "plain" }: { path: st
   }
   const Icon = copied ? CheckReadIcon : ShareIcon;
   return <>
-    <button ref={shareTrigger} type="button" className={`content-action${variant === "light" ? " content-action-light" : ""}`} aria-label={`${copied ? "Link copied for" : "Share"} ${kind}: ${title}`} disabled={busy} onClick={() => void share()}>
+    <button ref={shareTrigger} type="button" className={`content-action${variant === "plain" ? "" : ` content-action-${variant}`}`} aria-label={`${copied ? "Link copied for" : "Share"} ${kind}: ${title}`} disabled={busy} onClick={() => void share()}>
       <Icon className="size-[18px] shrink-0" aria-hidden />
       <span aria-live="polite">{copied ? "Copied" : "Share"}</span>
     </button>

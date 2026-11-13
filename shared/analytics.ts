@@ -4,6 +4,7 @@ export const ANALYTICS_PAGES = {
   "/tools": "Tools",
   "/participation": "Participation",
   "/how-it-works": "How it works",
+  "/blog": "Blog",
 } as const;
 
 export type AnalyticsPage = keyof typeof ANALYTICS_PAGES;

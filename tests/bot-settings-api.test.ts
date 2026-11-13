@@ -22,6 +22,18 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
+it("loads and saves supported settings when the bot has no weekly enforcement capability", async () => {
+  delete state.options.weeklyEngagementEnforcement;
+  const upstream = vi.fn().mockImplementation(async () => Response.json(state)); vi.stubGlobal("fetch", upstream);
+  const loaded = await GET(request()); expect(loaded.status).toBe(200); const legacy = await loaded.json();
+  expect(legacy.options).not.toHaveProperty("weeklyEngagementEnforcement");
+  legacy.options.welcomeTagging = false;
+  const saved = await POST(request("POST", legacy)); expect(saved.status).toBe(200);
+  const sent = JSON.parse(upstream.mock.calls[1][1].body); expect(sent.options.welcomeTagging).toBe(false); expect(sent.options).not.toHaveProperty("weeklyEngagementEnforcement");
+  const incomplete = structuredClone(state) as Omit<BotSettingsState, "options"> & { options: Partial<BotSettingsState["options"]> }; delete incomplete.options.welcomeTagging;
+  upstream.mockResolvedValueOnce(Response.json(incomplete)); expect((await GET(request())).status).toBe(503);
+});
+
 it("requires an approved admin and the correct origin before contacting the bot", async () => {
   const upstream = vi.fn(); vi.stubGlobal("fetch", upstream);
   expect((await GET(request("GET", undefined, { cookie: "" }))).status).toBe(401);

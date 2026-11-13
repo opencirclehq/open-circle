@@ -36,6 +36,7 @@ OpenCircle brings the group's GitHub profiles and public projects into one place
 - Find developer tools, submit tools for review and rate them with GitHub sign-in.
 - Share projects, give feedback and answer help requests through group participation.
 - Find community events, join online sessions, and return for recordings and learning resources.
+- Read the community blog, and write posts for review with embedded YouTube videos and Gists.
 - Manage members, events, tool submissions and ranking settings through the admin page.
 
 Choose **Light**, **Dark** or **System** from the Appearance control at the top right. Your choice stays saved in this browser; System follows your device’s appearance setting.
@@ -51,6 +52,12 @@ Upcoming events have a Register button and a name/email form. Registrations pers
 Event pages use five-character addresses such as `/events/yu48r`. A short address stays the same when the title or schedule changes. Existing title-and-ID links keep opening the same event and switch to its short address; older events receive a short address when saved.
 
 Shared event links show the published event's title, summary and cover image. Only the current cover of a published event is available to preview crawlers through `/api/event-cover`; recordings, resources, registration details and draft covers remain private.
+
+## Blog
+
+Anyone can read the [blog](https://opencircle.cc/blog). Verified members write posts in a rich Markdown editor, and an organiser approves each one in **Admin → Blog** before it is published. Posts can embed YouTube videos and GitHub Gists, link a public GitHub, GitLab or Bitbucket repository, and name the address where they first appeared so search engines credit the original. Each post links to its author's portfolio, and portfolios list their owner's latest posts.
+
+Apply `009_blog.sql` through the normal migration command before releasing the blog. See the [blog guide](docs/blog.md).
 
 ## Member portfolios
 
@@ -166,6 +173,7 @@ Thanks to [everyone who contributes](https://github.com/opencirclehq/open-circle
 | [API](docs/api.md) | Endpoints, request formats and error responses. |
 | [Deployment](docs/deployment.md) | Running the built app and troubleshooting setup problems. |
 | [Portfolios](docs/portfolios.md) | Customization, publishing, contact privacy, uploads and subdomains. |
+| [Blog](docs/blog.md) | Writing, embeds, review, cross-posting, portfolios and release. |
 
 ## Privacy
 

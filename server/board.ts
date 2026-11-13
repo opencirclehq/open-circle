@@ -40,9 +40,13 @@ import { coordinationRequest } from "./participation.js";
 import { RANKING_PERIODS, type HelperHistory, type HelperPeriodScores, type RankingPeriod } from "../shared/coordination.js";
 import { communityStarHelps, STAR_HELP_POINTS } from "../shared/star-help.js";
 import { lookupCommunityRepository } from "./community-spotlight.js";
+import { getForumStore, type ForumStore } from "./forum-store.js";
+import { communityActivityScores } from "./forum-activity.js";
+import { emptyCommunityActivity } from "../shared/community-activity.js";
 
 const REFRESH_EVERY_MS = 60_000;
-const RANKING_VERSION = 6;
+const RANKING_VERSION = 7;
+const COMMUNITY_REFRESH_MS = 10_000;
 // Held for this long after a failed refresh, so a rate-limited GitHub isn't retried on every poll.
 const REFRESH_LOCK_S = 50;
 // With more members than this, each tick refreshes the stalest ones and the rest wait their turn.
@@ -66,6 +70,7 @@ export async function loadConfig(store: Store): Promise<AppConfig> {
 
 function statsFields(stats: GithubStats): Partial<MemberRecord> {
   return {
+    ...(stats.githubId ? { githubId: stats.githubId } : {}),
     displayLogin: stats.login,
     name: stats.name,
     avatarUrl: stats.avatarUrl,
@@ -108,7 +113,7 @@ function repositoryUpvotes(projects: GithubRepository[], counts: Record<string, 
 /** Ranks every visible member, records rank movement, and writes the public snapshot. */
 export async function rebuildBoard(
   store: Store,
-  opts: { refreshedAt?: number; statsDelayed?: boolean; voteCounts?: Record<string, number>; communityRepository?: PublicRepository | null; communityRepositoryCheckedAt?: number; communityRepositoryDelayed?: boolean } = {},
+  opts: { refreshedAt?: number; statsDelayed?: boolean; voteCounts?: Record<string, number>; communityRepository?: PublicRepository | null; communityRepositoryCheckedAt?: number; communityRepositoryDelayed?: boolean; forumStore?: ForumStore; refreshHelpers?: boolean } = {},
 ): Promise<Board> {
   const [records, config, previous, votes] = await Promise.all([
     store.listMembers(),
@@ -117,10 +122,19 @@ export async function rebuildBoard(
     opts.voteCounts ?? getCommunityStore().readVotes("").then((result) => result.counts),
   ]);
   const now = Date.now();
+  let communityDelayed = false;
+  let communityScores: ReturnType<typeof communityActivityScores> = new Map();
+  try {
+    communityScores = communityActivityScores(await (opts.forumStore ?? getForumStore()).readActivity(), now);
+  } catch (error) {
+    communityDelayed = true;
+    console.error("Community activity scores could not refresh", error);
+  }
+  const previousMembers = new Map((previous?.members ?? []).map((member) => [member.login.toLowerCase(), member]));
   let helpersCheckedAt = previous?.helpersCheckedAt ?? 0;
   let helpersUpdatedAt = previous?.helpersUpdatedAt ?? 0;
   let helpersDelayed = previous?.helpersDelayed ?? true;
-  if (now - helpersCheckedAt >= REFRESH_EVERY_MS || previous?.rankingVersion !== RANKING_VERSION || (previous.helperHistoryReady && records.some((record) => !record.hidden && !record.helperPeriods))) {
+  if (opts.refreshHelpers !== false && (now - helpersCheckedAt >= REFRESH_EVERY_MS || previous?.rankingVersion !== RANKING_VERSION || (previous.helperHistoryReady && records.some((record) => !record.hidden && !record.helperPeriods)))) {
     helpersCheckedAt = now;
     let helpers: HelperHistory | null = null;
     try {
@@ -175,13 +189,19 @@ export async function rebuildBoard(
       const starHelps = communityStarHelps(record.login, record.starredRepositories ?? [], visibleLogins, now, period);
       const help = record.helperPeriods?.[period];
       const helperPoints = (help?.points ?? record.helperPoints ?? 0) + starHelps * STAR_HELP_POINTS;
-      const m = { ...record, activity, upvotes, helperPoints, starHelps, helpfulContributions: help?.contributions ?? record.helpfulContributions ?? 0, helpedMembers: help?.peers ?? record.helpedMembers ?? 0 };
+      const saved = period === "all" ? previousMembers.get(record.login) : previous?.periods?.[period].find((member) => member.login.toLowerCase() === record.login);
+      const communityActivity = communityDelayed ? saved?.communityActivity : activityScoresFor(record.githubId, period);
+      const communityPoints = communityActivity?.points ?? (communityDelayed ? saved?.communityPoints : undefined);
+      const m = { ...record, activity, upvotes, helperPoints, starHelps, communityPoints, communityActivity, helpfulContributions: help?.contributions ?? record.helpfulContributions ?? 0, helpedMembers: help?.peers ?? record.helpedMembers ?? 0 };
       const githubScore = scoreOf(m, config.weights);
-      return { m: { ...m, githubScore }, score: communityScore(githubScore, m.helperPoints) };
+      return { m: { ...m, githubScore }, score: communityScore(githubScore, m.helperPoints, communityPoints) };
     })
     .sort((a, b) =>
       compareStanding({ ...a.m, score: a.score }, { ...b.m, score: b.score }),
     );
+  function activityScoresFor(githubId: number | undefined, period: RankingPeriod) {
+    return githubId ? communityScores.get(githubId)?.[period] ?? emptyCommunityActivity() : undefined;
+  }
   const ranked = rankedFor("all");
 
   const achievementCounts: Record<string, number> = {};
@@ -225,6 +245,8 @@ export async function rebuildBoard(
       starHelps: m.starHelps,
       helpedMembers: m.helpedMembers ?? 0,
       githubScore: m.githubScore,
+      communityPoints: m.communityPoints,
+      communityActivity: m.communityActivity,
       rank,
       delta: recent ? prevRank - rank : 0,
       isNew: now - m.createdAt < NEW_WINDOW_MS,
@@ -247,6 +269,7 @@ export async function rebuildBoard(
   const periods = helperHistoryReady ? Object.fromEntries((["7d", "30d"] as const).map((period) => [period, rankedFor(period).map(({ m, score }, index) => ({
     ...publicMembers.get(m.login)!, score, rank: index + 1, delta: 0,
     helperPoints: m.helperPoints, helpfulContributions: m.helpfulContributions, helpedMembers: m.helpedMembers, starHelps: m.starHelps,
+    communityPoints: m.communityPoints, communityActivity: m.communityActivity,
   }))])) as Board["periods"] : undefined;
 
   const communityRepository = opts.communityRepository === undefined
@@ -274,6 +297,8 @@ export async function rebuildBoard(
 
   const board: Board = {
     rankingVersion: RANKING_VERSION,
+    communityCheckedAt: now,
+    communityDelayed: communityDelayed || records.some((record) => !record.hidden && !record.githubId),
     helpersCheckedAt,
     helpersUpdatedAt,
     helpersDelayed,
@@ -345,7 +370,7 @@ async function refreshStats(store: Store): Promise<Board> {
   const previous = await store.getBoard();
   const due = (await store.listMembers())
     .filter((m) => !m.hidden)
-    .filter((m) => m.activitySince !== contributionStart(m.createdAt) || !m.starSupportUpdatedAt || now - m.statsUpdatedAt >= REFRESH_EVERY_MS - 5_000)
+    .filter((m) => !m.githubId || m.activitySince !== contributionStart(m.createdAt) || !m.starSupportUpdatedAt || now - m.statsUpdatedAt >= REFRESH_EVERY_MS - 5_000)
     .sort((a, b) => a.statsUpdatedAt - b.statsUpdatedAt)
     .slice(0, REFRESH_LIMIT);
 
@@ -410,6 +435,13 @@ export async function readBoard(
   const board = saved?.repositories && saved.rankingVersion === RANKING_VERSION
     ? saved
     : await rebuildBoard(store, saved ? { refreshedAt: 0 } : {});
+  if (Date.now() - (board.communityCheckedAt ?? 0) >= COMMUNITY_REFRESH_MS && await store.tryLock("community-scores", 10)) {
+    background((async () => {
+      try { await rebuildBoard(store, { refreshHelpers: false }); }
+      catch (error) { console.error("Community activity refresh failed", error); }
+      finally { await store.unlock("community-scores"); }
+    })());
+  }
   if (
     (Date.now() - board.refreshedAt >= REFRESH_EVERY_MS || Date.now() - (board.helpersCheckedAt ?? 0) >= REFRESH_EVERY_MS || Date.now() - (board.communityRepositoryCheckedAt ?? 0) >= REFRESH_EVERY_MS) &&
     (await store.tryLock("refresh", REFRESH_LOCK_S))
@@ -484,8 +516,13 @@ export async function previewProfile(
   const visibleLogins = new Set(records.filter((record) => !record.hidden).map((record) => record.login.toLowerCase()));
   const starHelps = communityStarHelps(profile.login, profile.starredRepositories ?? [], visibleLogins, Date.now());
   const helperPoints = (existing?.helperPoints ?? 0) + starHelps * STAR_HELP_POINTS;
+  let communityPoints = 0;
+  if (profile.githubId) {
+    try { communityPoints = communityActivityScores(await getForumStore().readActivity(), Date.now()).get(profile.githubId)?.all.points ?? 0; }
+    catch { communityPoints = (await store.getBoard())?.members.find((member) => member.login.toLowerCase() === profile.login.toLowerCase())?.communityPoints ?? 0; }
+  }
   const { starredRepositories: ignoredStars, ...publicProfile } = profile;
-  return { profile: { ...publicProfile, projects: spotlightCandidates(profile.projects ?? []) }, score: communityScore(githubScore, helperPoints), githubScore, helpedMembers: existing?.helpedMembers ?? 0, helperPoints };
+  return { profile: { ...publicProfile, projects: spotlightCandidates(profile.projects ?? []) }, score: communityScore(githubScore, helperPoints, communityPoints), githubScore, helpedMembers: existing?.helpedMembers ?? 0, helperPoints, communityPoints };
 }
 
 function field(body: unknown, key: string): string {
@@ -541,6 +578,7 @@ export async function register(
     throw new HttpError(400, "invalid_spotlight", "That repository is no longer eligible. Choose another with at least 5 stars, or use the automatic pick.", "spotlightRepositoryId");
   }
   const record: MemberRecord = {
+    ...(stats.githubId ? { githubId: stats.githubId } : {}),
     login: stats.login.toLowerCase(),
     displayLogin: stats.login,
     nickname: nickname.value,

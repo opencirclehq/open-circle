@@ -3,14 +3,39 @@ import { createServer } from 'node:http';
 import { afterEach, expect, it, vi } from 'vitest';
 import { GET, POST } from '../api/participation';
 import { MemoryCommunityStore } from '../server/community-memory';
-import { coordinationRequest } from '../server/participation';
+import { coordinationRequest, participationSupport } from '../server/participation';
 import { TestStore } from './helpers/test-store';
+import { memberRecord } from './helpers/fixtures';
+import type { ParticipationState } from '../shared/coordination';
 
 let community: MemoryCommunityStore;
 let board: TestStore;
 vi.mock('../server/db',()=>({getStore:()=>board}));
 vi.mock('../server/community-store',()=>({getCommunityStore:()=>community}));
 afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();});
+
+it('includes existing star support without inflating confirmed feedback, leaking history or counting hidden and duplicate recipients',async()=>{
+  const store=new TestStore();
+  const now=Date.now();
+  const star=(ownerLogin:string,repositoryId:string)=>({ownerLogin,repositoryId,starredAt:now-1000});
+  const actor=memberRecord({login:'alice',displayLogin:'Alice',starredRepositories:[star('Bob','R_bob'),star('bOb','R_bob_second'),star('Alice','R_self'),star('Hidden','R_hidden'),star('Outside','R_outside')],starSupportUpdatedAt:now});
+  await store.createMember(actor);
+  await store.createMember(memberRecord({githubId:2,login:'bob',whatsapp:'+15550000002',nickname:'Bob'}));
+  await store.createMember(memberRecord({githubId:3,login:'hidden',hidden:true,whatsapp:'+15550000003',nickname:'Hidden'}));
+  const state={activity:{linked:true,contributions:0},projects:[],help:[],contributions:[]} as unknown as ParticipationState;
+  const supported=await participationSupport(state,store,{id:1,login:'Alice'});
+  expect(supported.activity).toMatchObject({contributions:0,starSupport:{members:1,points:20,updatedAt:now}});
+  expect(supported.contributions).toEqual([]);
+  expect(JSON.stringify(supported)).not.toMatch(/R_bob|starredRepositories|15550000002|R_hidden/);
+  expect(state.activity.starSupport).toBeUndefined();
+  await store.patchMember('alice',{starredRepositories:[]});
+  expect((await participationSupport(state,store,{id:1,login:'Alice'})).activity.starSupport).toEqual({members:0,points:0,updatedAt:now});
+  for(const patch of [{githubId:99},{githubId:1,starHistoryVersion:1},{starHistoryVersion:2,starSupportUpdatedAt:undefined}]){
+    await store.patchMember('alice',patch);
+    expect((await participationSupport(state,store,{id:1,login:'Alice'})).activity.starSupport).toEqual({members:null,points:null,updatedAt:null});
+  }
+  expect((await participationSupport(state,store,{id:55,login:'Missing'})).activity.starSupport).toEqual({members:null,points:null,updatedAt:null});
+});
 
 it('accepts only a bot WhatsApp link containing the issued command, while allowing older bot responses',async()=>{
   vi.stubEnv('WHATSAPP_MEMBERSHIP_URL','https://bot.example.test/api/v1/membership');
@@ -33,6 +58,8 @@ it('uses the signed-in GitHub identity through HTTP and protects personal respon
   vi.stubEnv('GITHUB_OAUTH_CLIENT_ID','test-client');vi.stubEnv('GITHUB_OAUTH_CLIENT_SECRET','test-secret');vi.stubEnv('GITHUB_OAUTH_REDIRECT_URI','https://opencircle.test/api/auth-callback');
   const token='a'.repeat(64);
   await community.createSession(createHash('sha256').update(token).digest('hex'),{id:1,login:'Alice',avatarUrl:''},Date.now()+60_000);
+  await board.createMember(memberRecord({login:'alice',displayLogin:'Alice',starredRepositories:[{repositoryId:'R_bob',ownerLogin:'Bob',starredAt:Date.now()-1000}]}));
+  await board.createMember(memberRecord({githubId:2,login:'bob',whatsapp:'+15550000002',nickname:'Bob'}));
   const calls:{path:string;body:Record<string,unknown>}[]=[];
   let status=200;
   let payload:unknown={activity:{linked:false},projects:[],help:[],contributions:[]};
@@ -50,6 +77,7 @@ it('uses the signed-in GitHub identity through HTTP and protects personal respon
   try {
     expect((await GET(new Request('https://opencircle.test/api/participation'))).status).toBe(401);
     const own=await GET(request()); expect(own.status).toBe(200);expect(own.headers.get('cache-control')).toBe('private, no-store');
+    expect(await own.json()).toMatchObject({activity:{starSupport:{members:1,points:20}}});
     payload={id:'link_1',code:'ABC123',expiresAt:Date.now()+600_000};
     const callsBeforeInvalidPhone=calls.length;
     const invalidPhone=await POST(request({action:'link',phone:'0803 123 4567'}));
@@ -62,7 +90,9 @@ it('uses the signed-in GitHub identity through HTTP and protects personal respon
     expect((await POST(request({action:'help',question:'A question'},'https://foreign.test'))).status).toBe(403);
     payload={activity:{linked:true},projects:[],help:[],contributions:[]};
     expect((await POST(request({action:'help',question:'How can I improve this?',login:'Other'}))).status).toBe(409);
-    expect((await POST(request({action:'answer',helpId:'existing',text:'A useful existing answer',login:'Other'}))).status).toBe(200);
+    const answered=await POST(request({action:'answer',helpId:'existing',text:'A useful existing answer',login:'Other'}));
+    expect(answered.status).toBe(200);
+    expect(await answered.json()).toMatchObject({activity:{starSupport:{members:1,points:20}}});
     expect(calls.at(-1)?.body.login).toBe('Alice');
     status=409;payload={error:'Already reviewed.'};
     await expect(coordinationRequest('action',{})).rejects.toMatchObject({status:409,message:'Already reviewed.'});

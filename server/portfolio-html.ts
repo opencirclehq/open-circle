@@ -9,13 +9,18 @@ export function publicPortfolioSlug(hostname: string, pathname: string): string 
   try { return decodeURIComponent(path[1]).toLowerCase(); } catch { return null; }
 }
 
+/** A published portfolio's public address: its subdomain once those are live, otherwise /p/<slug>. */
+export function publicPortfolioUrl(slug: string): string {
+  const base = (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, "");
+  return process.env.PORTFOLIO_SUBDOMAINS_ENABLED === "1" ? `https://${portfolioHostname(slug)}` : `${base}/p/${encodeURIComponent(slug)}`;
+}
+
 function escape(value: string): string { return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]!)); }
 
 export function portfolioHtml(html: string, portfolio: PublicPortfolio | null, slug: string): string {
   const title = portfolio ? `${portfolio.displayName}${portfolio.headline ? ` · ${portfolio.headline}` : ""}` : "Portfolio unavailable · OpenCircle";
   const description = portfolio ? portfolio.bio || portfolio.headline || `${portfolio.displayName}'s work and projects.` : "This portfolio isn't published yet.";
-  const base = (process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/+$/, "");
-  const url = process.env.PORTFOLIO_SUBDOMAINS_ENABLED === "1" ? `https://${portfolioHostname(slug)}` : `${base}/p/${encodeURIComponent(slug)}`;
+  const url = publicPortfolioUrl(slug);
   const image = portfolio?.coverUrl || portfolio?.avatarUrl;
   const clean = html.replace(/<title>[\s\S]*?<\/title>/gi, "")
     .replace(/<meta\b[^>]*(?:name|property)\s*=\s*["'](?:description|author|robots|theme-color|color-scheme|og:[^"']*|twitter:[^"']*)["'][^>]*>/gi, "")

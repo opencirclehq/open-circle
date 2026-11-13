@@ -8,6 +8,7 @@ import type { MemberCommunityState, ParticipationAction } from "@shared/coordina
 import { PaginatedList } from "@/components/pagination";
 import { MetalButton } from "@/components/metal-button";
 import { Panel, PanelHeader } from "@/components/panel";
+import { DisclosureSummary } from "@/components/ui/disclosure";
 
 export function CommunityGuide({ completed = false }: { completed?: boolean }) {
   const instructions = <>
@@ -19,8 +20,8 @@ export function CommunityGuide({ completed = false }: { completed?: boolean }) {
     <p className="pb-4 text-xs text-t3">Read the group description for the rules. You can ask the bot for /start, /catchup or /sessions in a private chat.</p>
   </>;
   return <section id="start" className="scroll-mt-24">
-    {completed ? <details className="border-b border-foreground/[0.06]">
-      <summary className="cursor-pointer py-3 text-sm font-medium">Instructions</summary>
+    {completed ? <details className="group border-b border-foreground/[0.06]">
+      <DisclosureSummary className="py-3 text-sm font-medium">Instructions</DisclosureSummary>
       {instructions}
     </details> : <Panel header={<PanelHeader title="Start here" />}>{instructions}</Panel>}
   </section>;

@@ -1,4 +1,4 @@
-import { CONTACT_KINDS, PORTFOLIO_ACCENTS, RESERVED_PORTFOLIO_SLUGS, type PortfolioContent, type PortfolioProject } from "./portfolio.js";
+import { CONTACT_KINDS, MAX_PORTFOLIO_SKILLS, MAX_PORTFOLIO_SKILL_LENGTH, PORTFOLIO_ACCENTS, RESERVED_PORTFOLIO_SLUGS, type PortfolioContent, type PortfolioProject } from "./portfolio.js";
 
 export class PortfolioValidationError extends Error {
   constructor(message: string, readonly field: string) { super(message); }
@@ -33,8 +33,13 @@ export function parsePortfolio(input: unknown, savedSlug?: string): PortfolioCon
   if (!["studio", "aurora", "contour"].includes(String(body.coverStyle))) fail("Choose a cover style.", "coverStyle");
   if (!["available", "selective", "unavailable"].includes(String(body.availability))) fail("Choose your availability.", "availability");
   if (typeof body.coverPosition !== "number" || !Number.isFinite(body.coverPosition) || body.coverPosition < 0 || body.coverPosition > 100) fail("Choose a cover position between 0 and 100.", "coverPosition");
-  if (!Array.isArray(body.skills) || body.skills.length > 12) fail("Add up to 12 skills.", "skills");
-  const skills = [...new Set(body.skills.map((skill) => text(skill, "skill", 32, true)))];
+  if (!Array.isArray(body.skills) || body.skills.length > MAX_PORTFOLIO_SKILLS) fail(`Add up to ${MAX_PORTFOLIO_SKILLS} skills.`, "skills");
+  const skills = [...new Set(body.skills.map((skill) => {
+    if (typeof skill !== "string" || !skill.trim()) fail("Add a name for each skill.", "skills");
+    const value = skill.trim();
+    if (value.length > MAX_PORTFOLIO_SKILL_LENGTH) fail(`Keep each skill within ${MAX_PORTFOLIO_SKILL_LENGTH} characters. Separate different skills with commas, semicolons or new lines.`, "skills");
+    return value;
+  }))];
   if (!Array.isArray(body.contacts) || body.contacts.length > 4) fail("Add up to four contact methods.", "contacts");
   const contacts = body.contacts.map((item: unknown) => {
     if (!item || typeof item !== "object") return fail("Check your contact details.", "contacts");

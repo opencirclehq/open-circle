@@ -176,6 +176,7 @@ describe("next-goal progress", () => {
     const goals = nextGoals(
       { activityDays: ["2026-10-12", "2026-10-13", "2026-10-14"], longestStreak: 4, contributions: 3, helpedMembers: 2, stars: 40 },
       { first_contribution: 1, first_help: 1 },
+      Date.parse("2026-10-14T12:00:00Z"),
     );
     const streak = goals.find((goal) => goal.group === "streak");
     expect(streak).toMatchObject({ id: "streak_7", current: 4, target: 7 });

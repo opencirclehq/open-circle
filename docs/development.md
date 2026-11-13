@@ -93,3 +93,15 @@ dropdb opencircle_forum_test_local
 ```
 
 The contract applies all migrations, checks migration idempotence, truncates only forum tables in that disposable database and tests concurrent voting, duplicate requests, closure races, database uniqueness, rollback and persistence through a new store connection. Never point it at a shared or production database. Test workers remain capped at two.
+
+### Blog storage verification
+
+The blog contract in `tests/helpers/blog-contract.ts` runs against the local file store in the standard suite. To run it against PostgreSQL, with unique addresses, rollback and concurrent edits, use a disposable local database named `opencircle_blog_test_*`:
+
+```bash
+createdb opencircle_blog_test_local
+BLOG_TEST_DATABASE_URL=postgresql://localhost/opencircle_blog_test_local pnpm test tests/blog-postgres.test.ts
+dropdb opencircle_blog_test_local
+```
+
+The UI tests replace the rich editor with a plain text area, because the editor needs a real browser. Check editor changes in `pnpm dev`.

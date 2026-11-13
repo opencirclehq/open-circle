@@ -101,7 +101,7 @@ it("rebuilds the previous all-repository snapshot before serving it", async () =
   await store.createMember(memberRecord({ projects: [repository({ id: "R_low", stars: 4 }), repository({ id: "R_best", stars: 20 }), repository({ id: "R_other", stars: 5 })] }));
   await store.setBoard(boardFixture({ rankingVersion: 2 }));
   const result = await readBoard(store);
-  expect(result.rankingVersion).toBe(6);
+  expect(result.rankingVersion).toBe(7);
   expect(result.repositories.map((repo) => repo.id)).toEqual(["R_best"]);
   expect(decodeMember(encodeMember(memberRecord())).spotlightRepositoryId).toBeUndefined();
 });

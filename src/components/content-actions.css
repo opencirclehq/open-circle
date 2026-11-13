@@ -1,6 +1,9 @@
 .content-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .content-action { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; border-radius: 10px; color: hsl(var(--t3)); font-size: 13px; font-weight: 500; line-height: 20px; }
 .content-action:hover { background: hsl(var(--foreground) / .05); color: hsl(var(--foreground)); }
+.content-action-filled { width: fit-content; max-width: 100%; flex: none; padding-inline: 14px; background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); font-size: 14px; }
+.content-action-filled:hover { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.content-action-filled:active { background: hsl(var(--foreground) / .16); }
 .content-action-light { padding-inline: 20px; border-radius: 9999px; background: hsl(214 45% 97%); color: hsl(220 30% 12%); font-size: 14px; }
 .content-action-light:hover { background: hsl(214 30% 90%); color: hsl(220 30% 12%); }
 .content-action:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }

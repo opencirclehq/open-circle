@@ -3,9 +3,12 @@ import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { ActivityHeatmap } from "../src/components/board/activity-heatmap";
 import { ProgressionPanel } from "../src/components/board/progression-panel";
 import { RankTable } from "../src/components/board/rank-table";
+import PublicPortfolio from "../src/pages/PublicPortfolio";
+import { defaultPortfolio } from "../shared/portfolio";
 import type { MemberProgression } from "../shared/progression";
 import { publicMember } from "./helpers/fixtures";
 
@@ -60,6 +63,29 @@ describe("Progression marks on the leaderboard", () => {
 });
 
 describe("Progression detail", () => {
+  it("keeps published writing and milestones together on the public portfolio", async () => {
+    const profile = { id: 1, login: "Octocat", avatarUrl: "" };
+    const portfolio = {
+      ...defaultPortfolio(profile), githubLogin: profile.login, avatarUrl: "", publishedAt: 1,
+      posts: [{ title: "Our first community component", summary: "Building a component with the circle.", topic: "Frontend", publishedAt: 1, url: "/blog/our-first-component" }],
+    };
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      if (input.startsWith("/api/portfolio?")) return new Response(JSON.stringify(portfolio), { headers: { "content-type": "application/json" } });
+      if (input.startsWith("/api/progression?")) return new Response(JSON.stringify(progression), { headers: { "content-type": "application/json" } });
+      throw new Error(`Unexpected request: ${input}`);
+    }));
+    try {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(<QueryClientProvider client={client}><MemoryRouter><PublicPortfolio slug="octocat" /></MemoryRouter></QueryClientProvider>);
+
+      expect(await screen.findByRole("heading", { name: "Milestones" })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "Writing" })).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Our first community component" }).getAttribute("href")).toBe("/blog/our-first-component");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("draws an activity heatmap labelled by its active days", () => {
     render(<ActivityHeatmap days={["2026-10-13", "2026-10-14"]} weeks={2} today="2026-10-14" />);
 

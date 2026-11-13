@@ -1,4 +1,4 @@
-import type { PortfolioContent, PortfolioEditorState, PortfolioGitHubPage, PublicPortfolio } from "@shared/portfolio";
+import type { PortfolioContent, PortfolioEditorState, PortfolioGitHubPage, PublicPortfolioPage } from "@shared/portfolio";
 import { ApiError } from "./api";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -12,7 +12,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const portfolioApi = {
   editor: (signal?: AbortSignal) => request<PortfolioEditorState>("/api/portfolio", { signal }),
-  public: (slug: string, signal?: AbortSignal) => request<PublicPortfolio>(`/api/portfolio?slug=${encodeURIComponent(slug)}`, { signal }),
+  public: (slug: string, signal?: AbortSignal) => request<PublicPortfolioPage>(`/api/portfolio?slug=${encodeURIComponent(slug)}`, { signal }),
   save: (action: "save" | "publish" | "unpublish", content: PortfolioContent, version: number) => request<PortfolioEditorState>("/api/portfolio", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, content, version }) }),
   repositories: (page: number, signal?: AbortSignal) => request<PortfolioGitHubPage>(`/api/portfolio-github?page=${page}`, { signal }),
   profile: () => request<Pick<PortfolioContent, "displayName" | "bio" | "location">>("/api/portfolio-github?view=profile"),

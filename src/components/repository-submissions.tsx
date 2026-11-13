@@ -2,6 +2,7 @@ import type { ParticipationAction, RepositorySubmission } from "@shared/coordina
 import { MetalButton } from "@/components/metal-button";
 import { PaginatedList } from "@/components/pagination";
 import { Panel, PanelHeader } from "@/components/panel";
+import { DisclosureSummary } from "@/components/ui/disclosure";
 
 export function RepositorySubmissions({ repositories, login, busy, submit, contribute }: { repositories: RepositorySubmission[]; login: string; busy: boolean; submit: (input: ParticipationAction) => Promise<boolean>; contribute: (repo: RepositorySubmission) => void }) {
   return <section id="repositories" className="scroll-mt-24">
@@ -27,7 +28,7 @@ export function RepositorySubmissions({ repositories, login, busy, submit, contr
         </li>;
       }}</PaginatedList> : <p className="py-5 text-sm text-t3">Submit a public repo for the group to contribute to. An admin reviews it before it is announced.</p>}
       <details className="border-t border-foreground/[0.06] py-4">
-        <summary className="cursor-pointer text-sm font-medium">Submit an open-source repo</summary>
+        <DisclosureSummary className="text-sm font-medium">Submit an open-source repo</DisclosureSummary>
         <form className="space-y-4 pt-5" onSubmit={async (event) => {
           event.preventDefault();
           if (busy) return;

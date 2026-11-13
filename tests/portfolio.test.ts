@@ -26,6 +26,19 @@ describe("portfolio addresses and input", () => {
     for (const slug of ["www", "wa", "admin", "api", "a.b", "-alice", "alice-", "x".repeat(40)]) expect(() => parsePortfolio({ ...input, slug })).toThrow();
     expect(parsePortfolio({ ...input, slug: "a" }).slug).toBe("a");
   });
+  it("accepts descriptive skill names and trims before checking their length", () => {
+    const skills = ["Continuous integration and deployment", "x".repeat(80)];
+    expect(parsePortfolio({ ...content(), skills: skills.map((skill) => ` ${skill} `) }).skills).toEqual(skills);
+    expect(parsePortfolio({ ...content(), skills: Array.from({ length: 12 }, (_, index) => `Skill ${index}`) }).skills).toHaveLength(12);
+  });
+  it.each([
+    ["an overlong skill", ["x".repeat(81)]],
+    ["too many skills", Array.from({ length: 13 }, (_, index) => `Skill ${index}`)],
+    ["an empty skill", [" "]],
+    ["a non-text skill", [42]],
+  ])("identifies the Skills field for %s", (_label, skills) => {
+    expect(() => parsePortfolio({ ...content(), skills })).toThrow(expect.objectContaining({ field: "skills" }));
+  });
   it("rejects executable and credential-bearing links, unknown fields and overlong content", () => {
     for (const url of ["javascript:alert(1)", "data:image/svg+xml,svg", "http://example.com", "https://user:password@example.com", "https://127.0.0.1", "https://localhost", "https://example.com:8443"]) expect(() => safePortfolioUrl(url)).toThrow();
     expect(safePortfolioUrl("https://example.com/work")).toBe("https://example.com/work");

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CopyIcon } from "@solar-icons/react/linear";
 import type { LinkChallenge, ParticipationAction, ParticipationState } from "@shared/coordination";
 import { parseWhatsappNumber } from "@shared/validation";
+import { STAR_HELP_POINTS } from "@shared/star-help";
 import { GitHubIcon } from "@/components/brand-icons";
 import { CommunityCatchUp, CommunityGuide, CommunityMentoring } from "@/components/community-routine";
 import { RepositorySubmissions } from "@/components/repository-submissions";
@@ -170,15 +171,15 @@ export default function Participation() {
       {/* Signed out, the panel below carries the one sign-in button. */}
       {profile ? <AccountCorner /> : <AccountCorner>{null}</AccountCorner>}
 
-      <main className="mx-auto max-w-3xl space-y-4 px-4 pb-10 pt-[calc(5rem+env(safe-area-inset-top))] sm:space-y-6">
-        <h1 className="text-2xl font-medium tracking-[-0.03em]">Participation</h1>
+      <main className="page-container min-w-0 space-y-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:space-y-6 sm:pt-[calc(5rem+env(safe-area-inset-top))]">
+        <h1 className="flex min-h-11 items-center pr-28 text-[22px] font-medium tracking-[-0.03em] min-[360px]:text-2xl sm:min-h-0 sm:pr-0">Participation</h1>
         {page && (!profile || !data?.activity.linked) && <p className="max-w-md text-balance text-sm leading-relaxed text-t3">{page.summary}</p>}
 
 
         <CommunityGuide key={profile?.id ?? "signed-out"} completed={!!profile && !!data?.activity.linked} />
 
         {community.isPending ? <ParticipationSkeleton checkingSignIn /> : communityUnavailable ? <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <MetalButton variant="minimal" size="sm" className="w-auto" onClick={() => community.refetch()} disabled={community.isFetching}>Try again</MetalButton>
+          <MetalButton variant="minimal" size="sm" wrapperClassName="self-center" className="w-auto" onClick={() => community.refetch()} disabled={community.isFetching}>Try again</MetalButton>
         </div> : !profile ? <Panel header={<PanelHeader title="Sign in" subtitle="Connect your WhatsApp account, give project feedback and see your activity." />}>
           <div className="flex justify-center py-6">
             {community.data?.signInAvailable
@@ -190,7 +191,7 @@ export default function Participation() {
         : state.isPending ? <ParticipationSkeleton />
 
         : state.isError && (!data || !isTemporaryFailure(state.error)) ? <div className="flex flex-col items-center gap-3 py-10 text-center">
-          <MetalButton variant="minimal" size="sm" className="w-auto" onClick={() => state.refetch()} disabled={state.isFetching}>Try again</MetalButton>
+          <MetalButton variant="minimal" size="sm" wrapperClassName="self-center" className="w-auto" onClick={() => state.refetch()} disabled={state.isFetching}>Try again</MetalButton>
         </div>
 
         : data && (!data.activity.linked ? <Panel header={<PanelHeader title="Connect your WhatsApp account" subtitle="Use your number in Open Source Circle with its country code (e.g. +234), then send the code to the bot in a private WhatsApp chat from that account." chip={<Chip tone="muted">Step {challenge ? 2 : 1} of 2</Chip>} />}>
@@ -221,7 +222,26 @@ export default function Participation() {
           <TabsContent value="overview" forceMount hidden={section !== "overview"}>
             <section id="overview" className="scroll-mt-24 space-y-4 sm:space-y-6">
               <Panel header={<PanelHeader title="Your activity" subtitle={`${data.activity.pendingContributions} contributions await confirmation`} chip={<Chip tone={data.activity.tracking ? "ok" : "warn"}>{data.activity.tracking ? "Tracking" : "Paused"}</Chip>} />}>
-                <Progress label="Confirmed contributions" value={data.activity.contributions} total={data.activity.target} />
+                <div className="border-b border-foreground/[0.06] py-4">
+                  <p className="mb-3 text-xs text-t3">Repository star support</p>
+                  {data.activity.starSupport?.members !== null && data.activity.starSupport?.members !== undefined ? <>
+                    <dl className="grid grid-cols-1 gap-x-5 gap-y-3 text-sm min-[480px]:grid-cols-2">
+                      {([["Members supported", data.activity.starSupport.members], ["Leaderboard points from stars", data.activity.starSupport.points ?? 0]] as const).map(([name, value]) => <div key={name} className="flex min-w-0 items-baseline justify-between gap-3"><dt className="text-t3">{name}</dt><dd className="shrink-0 tabular-nums text-t1">{value.toLocaleString()}</dd></div>)}
+                    </dl>
+                    <p className="mt-3 text-xs leading-relaxed text-t3">Starring another member's public, original repository earns {STAR_HELP_POINTS} points, once per member supported. All-time totals from your latest GitHub refresh.</p>
+                  </> : <p role="status" className="text-xs leading-relaxed text-t3">Star support is waiting for a complete GitHub refresh of your leaderboard profile.</p>}
+                </div>
+                {data.activity.engagement?.startedAt !== null && data.activity.engagement?.startedAt !== undefined ? <div className="border-b border-foreground/[0.06] py-4">
+                  <p className="mb-3 text-xs text-t3">In the group this week</p>
+                  <dl className="grid grid-cols-1 gap-x-5 gap-y-3 text-sm min-[480px]:grid-cols-2">
+                    {([["Messages sent", data.activity.engagement.weekly.messages], ["Messages reacted to", data.activity.engagement.weekly.messagesReactedTo], ["Replies sent", data.activity.engagement.weekly.replies], ["Poll votes", data.activity.engagement.weekly.pollVotes]] as const).map(([name, value]) => <div key={name} className="flex min-w-0 items-baseline justify-between gap-3"><dt className="text-t3">{name}</dt><dd className="shrink-0 tabular-nums text-t1">{value.toLocaleString()}</dd></div>)}
+                  </dl>
+                  <p className="mt-3 text-xs leading-relaxed text-t3">Recorded totals: {data.activity.engagement.total.messages.toLocaleString()} messages, {data.activity.engagement.total.messagesReactedTo.toLocaleString()} messages reacted to, {data.activity.engagement.total.replies.toLocaleString()} replies and {data.activity.engagement.total.pollVotes.toLocaleString()} poll votes. Recording started {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(data.activity.engagement.startedAt)}.</p>
+                  <p className="mt-3 text-xs leading-relaxed text-t3">Messages, replies, reactions and poll votes count as group participation. Group reactions do not earn leaderboard points.</p>
+                  {data.activity.engagement.enforcement && <p className="mt-3 text-xs leading-relaxed text-t3">{data.activity.engagement.warnings}/3 inactivity warnings this week. A full week without engagement after three delivered warnings leads to automatic removal. Approved breaks and your settling-in period are protected.</p>}
+                </div> : <p role="status" className="border-b border-foreground/[0.06] py-4 text-xs leading-relaxed text-t3">Group message and reaction recording has not started. Earlier group activity is unavailable.</p>}
+                <Progress label="Confirmed feedback" value={data.activity.contributions} total={data.activity.target} />
+                <p className="py-3 text-xs leading-relaxed text-t3">Feedback counts here after the recipient or an admin confirms it. Repository stars and group participation are recorded separately above.</p>
                 <Progress label="Members you've given feedback" value={data.activity.reviewPeers} total={data.activity.requiredReviewPeers} />
                 {(!data.activity.tracking || data.activity.graceRemainingDays > 0 || data.activity.removalReview) && <div className="space-y-1.5 py-4 text-xs text-t4">
                   {!data.activity.tracking && <p role="status">{data.activity.enabled ? "Tracking is paused while the bot checks group access." : "Coordination is paused. You can still submit feedback."}</p>}

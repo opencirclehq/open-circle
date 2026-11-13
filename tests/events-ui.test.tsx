@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -92,4 +92,78 @@ it("cancels and clears private event queries after GitHub sign-out", async () =>
   const hook = renderHook(() => useGitHubSignOut(),{ wrapper:({ children }) => <QueryClientProvider client={q}>{children}</QueryClientProvider> });
   await act(() => hook.result.current.mutateAsync());
   expect(q.getQueryData(key)).toBeUndefined(); expect(q.getQueryData<{ profile:unknown }>(["community"])?.profile).toBeNull();
+});
+
+it("shows the saved admin cover, event details and icon actions without exposing a public media URL", async () => {
+  const user = userEvent.setup(); const e = event(); e.published = true;
+  e.content.coverAlt = "TypeScript workshop cover";
+  e.cover = { id:"cover", kind:"cover", contentType:"image/png", size:1024, title:"Workshop poster", filename:"cover.png", duration:null, uploadedAt:Date.now() };
+  e.content.resources = [{ id:"guide", title:"Workshop guide", description:"", url:"https://example.test/guide", assetId:null }];
+  vi.spyOn(eventsApi,"list").mockResolvedValue({ events:[e], storageConfigured:true });
+  wrapper(<AdminEvents onUnauthorized={vi.fn()} />);
+  const list = await screen.findByRole("list", { name:"Events" });
+  const row = within(list).getByRole("listitem");
+  const image = within(row).getByRole("img", { name:"TypeScript workshop cover" });
+  const source = image.getAttribute("src")!;
+  expect(source).toBe("/api/event-media?slug=typescript-session&asset=cover&admin=1");
+  expect(within(row).getByText("Published")).toBeTruthy();
+  expect(within(row).getByText("Build together")).toBeTruthy();
+  expect(within(row).getByText("Alice")).toBeTruthy();
+  expect(within(row).getByText("Google Meet")).toBeTruthy();
+  expect(row.querySelector("time")?.getAttribute("datetime")).toBe(new Date(e.content.startsAt!).toISOString());
+  expect(within(row).getByText(/Africa\/Lagos/)).toBeTruthy();
+  expect(within(row).getByText("1 resource")).toBeTruthy();
+  const preview = within(row).getByRole("link", { name:/Preview event/ });
+  expect(preview.getAttribute("href")).toBe("/events/typescript-session?preview=1");
+  expect(preview.getAttribute("rel")).toContain("noopener");
+  for (const control of [screen.getByRole("button", { name:"Create event" }), within(row).getByRole("button", { name:"Manage event" }), preview]) expect(control.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+  await user.click(within(row).getByRole("button", { name:`View full-size cover for ${e.content.title}` }));
+  const dialog = screen.getByRole("dialog", { name:`Event cover: ${e.content.title}` });
+  expect(within(dialog).getByRole("img").getAttribute("src")).toBe(source);
+  await user.keyboard("{Escape}");
+  await user.click(within(row).getByRole("button", { name:"Manage event" }));
+  expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(e.content.title);
+  expect(screen.getByRole("img", { name:"TypeScript workshop cover" }).getAttribute("src")).toBe(source);
+  expect(screen.getByRole("button", { name:"Back to events" }).querySelector("svg")).toBeTruthy();
+  await user.click(screen.getByRole("button", { name:"Back to events" }));
+  expect(await screen.findByRole("list", { name:"Events" })).toBeTruthy();
+});
+
+it("shows an honest missing-cover state for an incomplete draft and opens its private preview", async () => {
+  const e = event(); e.content = emptyEvent();
+  vi.spyOn(eventsApi,"list").mockResolvedValue({ events:[e], storageConfigured:false });
+  wrapper(<AdminEvents onUnauthorized={vi.fn()} />);
+  const list = await screen.findByRole("list", { name:"Events" });
+  expect(within(list).queryByRole("img")).toBeNull();
+  expect(within(list).getByText("No cover image")).toBeTruthy();
+  expect(within(list).getByRole("heading", { name:"Untitled event" })).toBeTruthy();
+  expect(within(list).getByText("Draft / unpublished")).toBeTruthy();
+  expect(within(list).getByText("Schedule pending")).toBeTruthy();
+  expect(within(list).getByText(/Date to be confirmed/)).toBeTruthy();
+  expect(within(list).getByRole("link", { name:/Preview event/ }).getAttribute("href")).toContain("preview=1");
+  expect(screen.getByRole("status").textContent).toContain("storage is not configured");
+});
+
+it("keeps the saved cover visible when a replacement upload fails", async () => {
+  const user = userEvent.setup(); const e = event(); e.content.coverAlt = "Saved workshop cover";
+  e.cover = { id:"saved-cover", kind:"cover", contentType:"image/png", size:1024, title:"Saved poster", filename:"saved.png", duration:null, uploadedAt:Date.now() };
+  vi.spyOn(eventsApi,"list").mockResolvedValue({ events:[e], storageConfigured:true });
+  vi.spyOn(eventsApi,"upload").mockRejectedValue(new Error("Could not upload the replacement."));
+  wrapper(<AdminEvents onUnauthorized={vi.fn()} />);
+  await user.click(await screen.findByRole("button", { name:"Manage event" }));
+  const original = screen.getByRole("img", { name:"Saved workshop cover" }).getAttribute("src");
+  await user.upload(screen.getByLabelText("Choose cover"), new File(["png"],"replacement.png", { type:"image/png" }));
+  await user.click(screen.getByRole("button", { name:"Upload file" }));
+  await screen.findByText("Could not upload the replacement.");
+  expect(screen.getByRole("img", { name:"Saved workshop cover" }).getAttribute("src")).toBe(original);
+  expect(screen.getByRole("button", { name:"Retry upload" }).querySelector("svg")).toBeTruthy();
+});
+
+it("reports a failed admin list request and recovers the event list on retry", async () => {
+  const user = userEvent.setup();
+  vi.spyOn(eventsApi,"list").mockRejectedValueOnce(new Error("Couldn't load events.")).mockResolvedValue({ events:[event()], storageConfigured:true });
+  wrapper(<AdminEvents onUnauthorized={vi.fn()} />);
+  expect((await screen.findByRole("alert")).textContent).toBe("Couldn't load events.");
+  await user.click(screen.getByRole("button", { name:"Try again" }));
+  expect(await screen.findByRole("list", { name:"Events" })).toBeTruthy();
 });

@@ -27,6 +27,7 @@ The app includes:
 | `/repositories` | Find, upvote and save Spotlight projects. |
 | `/tools` | Discover, share, rate and save developer tools. |
 | `/participation` | Link a group account, share projects and give feedback after GitHub sign-in. |
+| `/blog` | Read members' posts; verified members write them for review. See the [blog guide](blog.md). |
 | `/how-it-works` | Open the ranking explanation over the board. |
 | `/admin` | Organiser controls, restricted to approved GitHub accounts. |
 

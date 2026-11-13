@@ -15,8 +15,10 @@ it("persists committed threads, comments, votes, requests and private revisions 
     const first = new LocalForumStore(file);
     const post = await commandForum(first, admin, command({ action: "create", kind: "discussion", content, publish: true, poll }));
     await commandForum(first, alice, command({ action: "vote", id: post.id, ballot: post.poll!.ballot, optionId: "option_2" }));
-    await commandForum(first, alice, command({ action: "comment", id: post.id, body: "Saved across restarts" }));
+    const commented = await commandForum(first, alice, command({ action: "comment", id: post.id, body: "Saved across restarts" }));
+    await commandForum(first, alice, command({ action: "like", id: post.id, commentId: commented.comments[0].id, liked: true }));
     await commandForum(first, alice, command({ action: "like", id: post.id, liked: true }));
-    expect(await readForum(new LocalForumStore(file), alice, post.id)).toMatchObject({ commentCount: 1, likeCount: 1, liked: true, poll: { total: 1, selected: "option_2" } });
+    expect(await readForum(new LocalForumStore(file), alice, post.id)).toMatchObject({ commentCount: 1, comments: [{ likeCount: 1, liked: true }], likeCount: 1, liked: true, poll: { total: 1, selected: "option_2" } });
+    expect(await new LocalForumStore(file).readActivity()).toEqual(await first.readActivity());
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });

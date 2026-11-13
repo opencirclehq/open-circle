@@ -106,7 +106,7 @@ export function GitHubAccount() {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
-        className="block rounded-full p-0.5 transition-transform hover:scale-[1.04] active:scale-95"
+        className="touch-target inline-flex size-11 items-center justify-center rounded-full p-0.5 transition-transform hover:scale-[1.04] active:scale-95 sm:size-10"
       >
         <img src={profile.avatarUrl} alt="" className="size-9 rounded-full" width={36} height={36} />
       </button>

@@ -31,8 +31,8 @@ export default function Community() {
   const client = useQueryClient();
   useEffect(() => () => { void client.cancelQueries({ queryKey: ["forum", profile?.id ?? null] }); client.removeQueries({ queryKey: ["forum", profile?.id ?? null] }); }, [client, profile?.id]);
   return <div className="relative min-h-dvh overflow-x-clip"><div className="app-backdrop" aria-hidden /><AccountCorner />
-    <main className="relative mx-auto min-w-0 max-w-3xl space-y-6 px-4 pb-36 pt-[calc(5rem+env(safe-area-inset-top))]">
-      <h1 className="text-2xl font-medium tracking-[-0.03em]">Community</h1>
+    <main className="page-container relative min-w-0 space-y-6 pb-36 pt-[calc(1rem+env(safe-area-inset-top))] sm:pt-[calc(5rem+env(safe-area-inset-top))]">
+      <h1 className="flex min-h-11 items-center pr-28 text-[22px] font-medium tracking-[-0.03em] min-[360px]:text-2xl sm:min-h-0 sm:pr-0">Community</h1>
       {state.isPending ? <ContentSkeleton label="Checking sign-in…" /> : state.isError ? <ForumFailure error={state.error} retry={() => { void state.refetch(); }} /> : !profile ? <div className="max-w-lg space-y-5 py-4"><p className="text-sm leading-relaxed text-t2">Discuss development, ask for help and join community polls. Discussions are for verified Open Source Circle members.</p>{state.data?.signInAvailable ? <MetalButton asChild className="min-h-11 w-auto"><a href={`/api/auth-start?${new URLSearchParams({ returnTo: forumDestination(`${location.pathname}${location.search}`) ?? "/community" })}`}><GitHubIcon className="size-4" />Sign in with GitHub</a></MetalButton> : <p className="text-sm text-t3">GitHub sign-in is being set up.</p>}</div> : <MemberForum key={profile.id} profile={profile} />}
     </main><Dock />
   </div>;
@@ -57,7 +57,7 @@ function MemberForum({ profile }: { profile: ForumAuthor }) {
     try {
       const result = await mutation.mutateAsync(command);
       if (!alive.current) return false;
-      await client.invalidateQueries({ queryKey: ["forum", profile.id] });
+      await Promise.all([client.invalidateQueries({ queryKey: ["forum", profile.id] }), client.invalidateQueries({ queryKey: ["board"] })]);
       if (command.action === "create") { setCreating(false); navigate(`/community/${result.id}`); }
       if (command.action === "comment") { const next = new URLSearchParams(params); next.set("page", String(Math.max(1, Math.ceil(result.commentTotal / FORUM_PAGE_SIZE)))); setParams(next); }
       if (command.action === "report") toast.success("Your report is with the admins.");
@@ -68,13 +68,13 @@ function MemberForum({ profile }: { profile: ForumAuthor }) {
   const change = (key: string, value: string) => { const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); if (key !== "page") next.delete("page"); setParams(next, { replace: key === "search" }); };
   const view = <div className="space-y-5">
     {!id && !helpId && !active.isError && <>
-      {creating && <ForumEditor key={profile.id} busy={mutation.isPending} onSave={act} onCancel={() => setCreating(false)} />}
+      {creating && <ForumEditor key={`${profile.id}:${questions}`} kind={questions ? "question" : "discussion"} busy={mutation.isPending} onSave={act} onCancel={() => setCreating(false)} />}
       <ForumFilters params={params} onChange={change} questions={questions} />
     </>}
     {helpId ? null : active.isPending ? <ContentSkeleton label="Loading community…" detail={!!id} /> : active.isError ? <ForumFailure error={active.error} retry={() => { void active.refetch(); }} /> : id && detail.data ? <ForumThreadView key={id} data={detail.data} profile={profile} busy={mutation.isPending} onAction={act} onPage={(p) => change("page", String(p))} /> : list.data ? <>
       {!helpId && <ForumFeed data={list.data} busy={mutation.isPending} onPage={(p) => change("page", String(p))} onLike={(id, liked) => { void act({ action: "like", id, liked, requestId: crypto.randomUUID() }); }} />}
     </> : null}
-    {questions && <LegacyHelp profileId={profile.id} login={profile.login} id={helpId} />}
+    {helpId && <LegacyHelp profileId={profile.id} login={profile.login} id={helpId} />}
   </div>;
-  return id ? view : <CommunitySections section={submissions ? "submissions" : questions ? "questions" : "discussions"} disabled={mutation.isPending} onChange={() => setCreating(false)} actions={questions && !helpId && !active.isError ? <MetalButton type="button" className="min-h-11 w-auto" disabled={mutation.isPending} aria-expanded={creating} onClick={() => setCreating(!creating)}>Ask a question</MetalButton> : undefined}>{view}</CommunitySections>;
+  return id ? view : <CommunitySections section={submissions ? "submissions" : questions ? "questions" : "discussions"} disabled={mutation.isPending} onChange={() => setCreating(false)} actions={!helpId && !active.isError ? <MetalButton type="button" className="min-h-11 w-auto" disabled={mutation.isPending} aria-expanded={creating} onClick={() => setCreating(!creating)}>{questions ? "Ask a question" : "New discussion"}</MetalButton> : undefined}>{view}</CommunitySections>;
 }

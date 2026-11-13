@@ -3,6 +3,7 @@ import type { CommunitySettings, CoordinationPolicy } from "./coordination.js";
 const option = <T extends boolean | number>(label: string, section: string, description: string, value: T, min = 0, max = 0) => ({ label, section, description, value, min, max });
 
 export const BOT_OPTION_FIELDS = {
+  weeklyEngagementEnforcement: option("Weekly inactivity warnings and removal", "moderation", "Tag inactive members Tuesday, Thursday and Saturday at 19:00. Remove on Monday after a fully observed week and three delivered warnings. Admins, settling-in members, breaks and incomplete weeks are protected. Off until enabled.", false),
   welcomeEnabled: option("Welcome new members", "welcome", "Queue newcomers for the next scheduled batch. Turning this off keeps the queue for later.", true),
   welcomeGreetingEnabled: option("Send a separate greeting", "welcome", "Send the greeting before the instructions. Both messages share one batch.", true),
   welcomeTagging: option("Tag newcomers", "welcome", "Use real WhatsApp mentions in the greeting. Turning this off sends no newcomer tags.", true),
@@ -42,8 +43,9 @@ export const BOT_OPTION_FIELDS = {
   spamLinkMessages: option("Link messages before a flag", "moderation", "Count group messages containing a link, not the number of links inside one message.", 5, 3, 30),
 } as const;
 
-export type BotOptions = { -readonly [K in keyof typeof BOT_OPTION_FIELDS]: typeof BOT_OPTION_FIELDS[K]["value"] extends boolean ? boolean : number };
-export const defaultBotOptions = (): BotOptions => Object.fromEntries(Object.entries(BOT_OPTION_FIELDS).map(([key, field]) => [key, field.value])) as BotOptions;
+type BotOptionValues = { -readonly [K in keyof typeof BOT_OPTION_FIELDS]: typeof BOT_OPTION_FIELDS[K]["value"] extends boolean ? boolean : number };
+export type BotOptions = Omit<BotOptionValues, "weeklyEngagementEnforcement"> & Partial<Pick<BotOptionValues, Extract<keyof BotOptionValues, "weeklyEngagementEnforcement">>>;
+export const defaultBotOptions = (): Required<BotOptions> => Object.fromEntries(Object.entries(BOT_OPTION_FIELDS).map(([key, field]) => [key, field.value])) as Required<BotOptions>;
 
 const template = (label: string, section: string, description: string, body: string, variables: readonly string[], required: readonly string[] = []) => ({ label, section, description, body, variables, required, maxLength: 6000 });
 

@@ -4,13 +4,14 @@ import { AltArrowDownIcon, AltArrowUpIcon, CheckReadIcon, CodeSquareIcon, Galler
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { TextureButton } from "@/components/ui/texture-button";
+import { DisclosureSummary } from "@/components/ui/disclosure";
 import { MetalButton } from "@/components/metal-button";
 import { ContentSkeleton } from "@/components/site-skeleton";
 import { portfolioApi } from "@/lib/portfolio-api";
 import { MAX_IMAGE_BYTES, type PortfolioProject, type PortfolioRepository } from "@shared/portfolio";
 
 export function EditorField({ label, hint, children, htmlFor }: { label: string; hint?: string; children: ReactNode; htmlFor: string }) {
-  return <div className="studio-field"><label htmlFor={htmlFor}>{label}</label>{children}{hint && <p>{hint}</p>}</div>;
+  return <div className="studio-field"><label htmlFor={htmlFor}>{label}</label>{children}{hint && <p id={`${htmlFor}-hint`}>{hint}</p>}</div>;
 }
 
 export function ImageField({ label, value, onChange, upload, uploadsAvailable }: { label: string; value: string; onChange: (value: string) => void; upload: (file: File) => Promise<string>; uploadsAvailable: boolean }) {
@@ -55,7 +56,7 @@ export function RepositoryPicker({ ownerId, selected, onSelect }: { ownerId: num
 export function ProjectEditor({ project, index, count, update, move, remove, upload, uploadsAvailable }: { project: PortfolioProject; index: number; count: number; update: (project: PortfolioProject) => void; move: (direction: -1 | 1) => void; remove: () => void; upload: (file: File) => Promise<string>; uploadsAvailable: boolean }) {
   const id = useId();
   return <details className="studio-project-editor" open={index === 0 ? true : undefined}>
-    <summary><span className="studio-project-number">{String(index + 1).padStart(2, "0")}</span><span className="min-w-0 flex-1 truncate">{project.title || project.repository.name}</span><AltArrowDownIcon className="size-4 text-t3" aria-hidden /></summary>
+    <DisclosureSummary><span className="studio-project-number">{String(index + 1).padStart(2, "0")}</span><span className="min-w-0 flex-1 truncate">{project.title || project.repository.name}</span></DisclosureSummary>
     <div className="studio-project-fields">
       <div className="flex flex-wrap items-center justify-between gap-2"><span className="max-w-full break-all text-xs text-t3">{project.repository.fullName}</span><div className="flex gap-1"><TextureButton type="button" variant="icon" size="icon" className="size-9" aria-label={`Move ${project.repository.name} up`} disabled={index === 0} onClick={() => move(-1)}><AltArrowUpIcon className="size-4" aria-hidden /></TextureButton><TextureButton type="button" variant="icon" size="icon" className="size-9" aria-label={`Move ${project.repository.name} down`} disabled={index === count - 1} onClick={() => move(1)}><AltArrowDownIcon className="size-4" aria-hidden /></TextureButton><TextureButton type="button" variant="icon" size="icon" className="size-9" aria-label={`Remove ${project.repository.name}`} onClick={remove}><TrashBinTrashIcon className="size-4" aria-hidden /></TextureButton></div></div>
       <EditorField label="Project title" htmlFor={`${id}-title`}><input id={`${id}-title`} className="field" value={project.title} placeholder={project.repository.name} onChange={(event) => update({ ...project, title: event.target.value })} maxLength={100} /></EditorField>

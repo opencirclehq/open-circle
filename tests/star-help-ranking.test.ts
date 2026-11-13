@@ -96,7 +96,7 @@ it("refreshes legacy records immediately, preserves credit on upstream failures 
     await Promise.all(work);
     return store.getBoard();
   }
-  expect(await refresh()).toMatchObject({ rankingVersion: 6, statsDelayed: false, members: expect.arrayContaining([expect.objectContaining({ login: "Octocat", starHelps: 1, score: 40 })]) });
+  expect(await refresh()).toMatchObject({ rankingVersion: 7, statsDelayed: false, members: expect.arrayContaining([expect.objectContaining({ login: "Octocat", starHelps: 1, score: 40 })]) });
   vi.setSystemTime(now + 61000); mode = "offline";
   expect(await refresh()).toMatchObject({ statsDelayed: true, members: expect.arrayContaining([expect.objectContaining({ login: "Octocat", starHelps: 1 })]) });
   vi.setSystemTime(now + 122000); mode = "removed";

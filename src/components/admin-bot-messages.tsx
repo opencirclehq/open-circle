@@ -2,6 +2,7 @@ import { useId, useRef, useState } from "react";
 import { MESSAGE_PREVIEW_VALUES, MESSAGE_TEMPLATES, messageTemplateError, renderMessageTemplate, type BotMessages, type MessageKey } from "@shared/bot-settings";
 import { SharedSelect } from "@/components/ui/select";
 import { MetalButton } from "@/components/metal-button";
+import { DisclosureSummary } from "@/components/ui/disclosure";
 
 export function AdminBotMessages({ messages, disabled, onChange }: { messages: BotMessages; disabled: boolean; onChange: (key: MessageKey, value: string) => void }) {
   const [search, setSearch] = useState("");
@@ -36,9 +37,9 @@ function MessageEditor({ messageKey, field, value, disabled, onChange, onEditing
     requestAnimationFrame(() => { element?.focus(); element?.setSelectionRange(start + token.length, start + token.length); });
   };
   return <details className="group py-3" onFocusCapture={onEditing}>
-    <summary className="cursor-pointer rounded-xl py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-foreground/40">
+    <DisclosureSummary className="rounded-xl text-sm font-medium">
       {field.label}{customized && <span className="ml-2 text-xs font-normal text-t3">Edited</span>}
-    </summary>
+    </DisclosureSummary>
     <div className="space-y-4 pb-3 pt-2">
       <p id={`${id}-description`} className="max-w-prose text-sm leading-relaxed text-t3">{field.description}</p>
       <div>

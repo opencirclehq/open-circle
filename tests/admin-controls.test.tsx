@@ -1,3 +1,4 @@
+import { botAdminFixture } from "./helpers/bot-admin";
 import { defaultBotOptions, defaultBotMessages } from "../shared/bot-settings";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,7 +13,7 @@ import { emptyTraffic } from "../server/analytics-store";
 
 vi.mock("../src/lib/api", async (original) => ({
   ...await original<typeof import("../src/lib/api")>(),
-  api: { adminSession: vi.fn(), adminSignOut: vi.fn(), adminState: vi.fn(), adminAction: vi.fn(), adminTools: vi.fn(), botSettings: vi.fn(), adminAnalytics: vi.fn() },
+  api: { botAdmin: vi.fn(), adminSession: vi.fn(), adminSignOut: vi.fn(), adminState: vi.fn(), adminAction: vi.fn(), adminTools: vi.fn(), botSettings: vi.fn(), adminAnalytics: vi.fn() },
 }));
 vi.mock("../src/components/board/tool-moderation", () => ({ ToolModeration: () => <p>Tool review queue</p> }));
 
@@ -30,6 +31,7 @@ beforeEach(() => {
       whatsapp: "+447700900123", hidden: false, createdAt: Date.now(), statsUpdatedAt: Date.now(),
     }],
   };
+  vi.mocked(api.botAdmin).mockReset().mockResolvedValue(botAdminFixture());
   vi.mocked(api.adminSession).mockReset().mockResolvedValue({ configured: true, profile });
   vi.mocked(api.adminSignOut).mockReset().mockResolvedValue({ ok: true });
   vi.mocked(api.adminState).mockReset().mockResolvedValue(state);

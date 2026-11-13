@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MetalText } from "@/components/metal-text";
 import { motion, useSpring, useTransform } from "motion/react";
-import { ChatRoundDotsIcon, CupStarIcon, UserIdIcon, UsersGroupRoundedIcon } from "@solar-icons/react/bold-duotone";
+import { ChatRoundDotsIcon, CupStarIcon, UserIdIcon, UsersGroupRoundedIcon, Widget4Icon } from "@solar-icons/react/bold-duotone";
 import { WhatsAppIcon } from "@/components/brand-icons";
 import { toast } from "sonner";
 import { BRAND_NAME, DEFAULT_INVITE_NOTE, DEFAULT_INVITE_URL } from "@shared/brand";
@@ -126,6 +126,9 @@ export function Dock({
           </DockIcon>
           <DockIcon label="Portfolio" onClick={() => go("/portfolio")} active={pathname === "/portfolio"}>
             <UserIdIcon size="100%" aria-hidden />
+          </DockIcon>
+          <DockIcon label="Components" onClick={() => go("/components")} active={pathname.startsWith("/components")}>
+            <Widget4Icon size="100%" aria-hidden />
           </DockIcon>
           <DockIcon
             edge

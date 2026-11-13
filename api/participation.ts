@@ -5,7 +5,7 @@ import { githubProfile } from "../server/github-auth.js";
 import { requireSameOriginJson } from "../server/community.js";
 import { HttpError, json, readJson } from "../server/http.js";
 import { enforcePublicRateLimit } from "../server/rate-limit.js";
-import { coordinationRequest } from "../server/participation.js";
+import { coordinationRequest, participationSupport } from "../server/participation.js";
 import { parseWhatsappNumber } from "../shared/validation.js";
 import type { LinkChallenge, ParticipationState } from "../shared/coordination.js";
 
@@ -19,7 +19,8 @@ export function GET(req: Request): Promise<Response> {
   return apiHandler(req, async () => {
     const profile = await signedIn(req);
     await enforcePublicRateLimit(req, getStore(), "preview", profile.login);
-    return json(await coordinationRequest<ParticipationState>("profile", { login: profile.login }), 200, { "cache-control": "private, no-store" });
+    const state = await coordinationRequest<ParticipationState>("profile", { login: profile.login });
+    return json(await participationSupport(state, getStore(), profile), 200, { "cache-control": "private, no-store" });
   });
 }
 
@@ -35,6 +36,7 @@ export function POST(req: Request): Promise<Response> {
       return json(await coordinationRequest<LinkChallenge>("link", { login: profile.login, phone: phone.value }), 201, { "cache-control": "private, no-store" });
     }
     if (body?.action === "help") throw new HttpError(409, "questions_moved", "Ask your question in Community. New questions need admin approval.");
-    return json(await coordinationRequest<ParticipationState>("action", { login: profile.login, input: body }), 200, { "cache-control": "private, no-store" });
+    const state = await coordinationRequest<ParticipationState>("action", { login: profile.login, input: body });
+    return json(await participationSupport(state, getStore(), profile), 200, { "cache-control": "private, no-store" });
   });
 }

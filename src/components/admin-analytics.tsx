@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ANALYTICS_PAGES, type AnalyticsDays, type TrafficDay } from "@shared/analytics";
 import { Panel, PanelHeader, Chip } from "@/components/panel";
 import { SharedSelect } from "@/components/ui/select";
+import { DisclosureSummary } from "@/components/ui/disclosure";
 import { TextureButton } from "@/components/ui/texture-button";
 import { useErrorToast } from "@/hooks/use-error-toast";
 import { api, ApiError } from "@/lib/api";
@@ -94,7 +95,7 @@ function TrafficChart({ daily }: { daily: TrafficDay[] }) {
     </div>
     <div aria-hidden className="ml-11 mt-2 flex justify-between gap-2 text-xs text-t3"><span>{dateLabel(daily[0].date)}</span><span>{dateLabel(daily[middle].date)}</span><span>{dateLabel(daily.at(-1)!.date)}</span></div>
     <details className="mt-4 text-xs text-t3">
-      <summary className="w-fit cursor-pointer rounded-sm py-2 hover:text-foreground">View daily data</summary>
+      <DisclosureSummary className="w-fit hover:text-foreground">View daily data</DisclosureSummary>
       <div className="mt-2 max-h-56 overflow-auto">
         <table className="w-full text-left tabular"><caption className="sr-only">Daily traffic in UTC</caption><thead><tr><th scope="col" className="py-2 font-medium">Date</th><th scope="col" className="py-2 text-right font-medium">Visitors</th><th scope="col" className="py-2 text-right font-medium">Page views</th></tr></thead><tbody>{daily.map((day) => <tr key={day.date}><th scope="row" className="py-2 font-normal">{dateLabel(day.date)}</th><td className="text-right">{formatFull(day.visitors)}</td><td className="text-right">{formatFull(day.pageViews)}</td></tr>)}</tbody></table>
       </div>

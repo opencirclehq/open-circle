@@ -6,10 +6,13 @@ import type { ForumAggregate, ForumContent, ForumFilter, ForumThread } from "../
 import { FORUM_PAGE_SIZE } from "../shared/forum.js";
 import { HttpError } from "./http.js";
 import { createPostgresPool } from "./postgres.js";
+import { forumActivity } from "./forum-activity.js";
+import type { CommunityActivity } from "../shared/community-activity.js";
 
 export interface ForumListing { threads: { thread: ForumThread; commentCount: number }[]; total: number }
 export type PublishedForumThread = Pick<ForumThread, "id" | "kind" | "author"> & { content: ForumContent };
 export interface ForumStore {
+  readActivity(): Promise<CommunityActivity[]>;
   readPublished(id: string): Promise<PublishedForumThread | null>;
   list(filter: ForumFilter, viewerId: number, admin: boolean): Promise<ForumListing>;
   transact<T>(id: string, write: boolean, run: (data: ForumAggregate) => Promise<T> | T): Promise<T>;
@@ -17,7 +20,7 @@ export interface ForumStore {
 const empty = (): ForumAggregate => ({ thread: null, comments: [], votes: {}, reports: [], audit: [], requests: {} });
 function matches(data: ForumAggregate, f: ForumFilter, viewer: number, admin: boolean) {
   const t = data.thread!;
-  if (t.kind !== f.kind && !admin) return false;
+  if (t.kind !== f.kind && !admin && !f.mine) return false;
   if (!admin && (t.hidden || (f.mine ? t.author.id !== viewer : !t.published))) return false;
   if (admin && f.queue === "pending" && t.review !== "pending") return false;
   if (admin && f.queue === "reports" && !data.reports.some((r) => !r.resolved)) return false;
@@ -32,6 +35,10 @@ export class LocalForumStore implements ForumStore {
   private tail: Promise<unknown> = Promise.resolve();
   constructor(private readonly file: string | null = path.resolve(".data/forum.json")) {
     this.records = file && existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+  }
+  async readActivity(): Promise<CommunityActivity[]> {
+    await this.tail;
+    return structuredClone(Object.values(this.records).flatMap((data) => forumActivity(data)));
   }
   async readPublished(id: string): Promise<PublishedForumThread | null> {
     await this.tail;
@@ -80,6 +87,15 @@ async function inTransaction<T>(pool: Pool, write: boolean, run: (client: PoolCl
 }
 export class PostgresForumStore implements ForumStore {
   constructor(private readonly pool: Pool) {}
+  async readActivity(): Promise<CommunityActivity[]> {
+    try {
+      const { rows } = await this.pool.query<{ document: ForumThread; comments: ForumAggregate["comments"]; votes: ForumAggregate["votes"] }>(`SELECT t.document,
+        COALESCE((SELECT jsonb_agg(c.document) FROM opencircle_forum_comments c WHERE c.thread_id=t.id), '[]'::jsonb) AS comments,
+        COALESCE((SELECT jsonb_object_agg(v.voter_id::text, v.option_id) FROM opencircle_forum_votes v WHERE v.thread_id=t.id), '{}'::jsonb) AS votes
+        FROM opencircle_forum_threads t WHERE t.document->'published' <> 'null'::jsonb`);
+      return rows.flatMap((row) => forumActivity({ thread: row.document, comments: row.comments, votes: row.votes }));
+    } catch (error) { storageError(error); }
+  }
   async readPublished(id: string): Promise<PublishedForumThread | null> {
     try {
       const result = await this.pool.query<PublishedForumThread>("SELECT id, document->>'kind' AS kind, document->'author' AS author, document->'published' AS content FROM opencircle_forum_threads WHERE id=$1 AND document->'published' <> 'null'::jsonb AND NOT (document->>'hidden')::boolean", [id]);
@@ -92,7 +108,7 @@ export class PostgresForumStore implements ForumStore {
       const param = (value: unknown) => { values.push(value); return `$${values.length}`; };
       const where: string[] = [];
       if (!admin) {
-        where.push(`t.document->>'kind' = ${param(f.kind)}`);
+        if (!f.mine) where.push(`t.document->>'kind' = ${param(f.kind)}`);
         where.push(f.mine ? `NOT (t.document->>'hidden')::boolean AND (t.document->'author'->>'id')::bigint = ${param(viewerId)}` : "t.document->'published' <> 'null'::jsonb AND NOT (t.document->>'hidden')::boolean");
       } else {
         if (f.queue === "pending") where.push("t.document->>'review' = 'pending'");

@@ -104,11 +104,12 @@ function Row({
       </div>
 
       <div role="cell" className="text-right md:text-left">
-        <span className="block text-sm font-medium tabular text-foreground" title={`${formatFull(member.score)} points · ${formatFull(member.helperPoints ?? 0)} from help · ${helpDetail}`}>
+        <span className="block text-sm font-medium tabular text-foreground" title={`${formatFull(member.score)} points · ${formatFull(member.helperPoints ?? 0)} from help${member.communityPoints === undefined ? "" : ` · ${formatFull(member.communityPoints)} from community activity`} · ${helpDetail}`}>
           <span className="sr-only">{formatFull(member.score)} points</span>
           <span className="md:hidden" aria-hidden="true">{formatCount(member.score)}</span>
           <span className="hidden md:inline" aria-hidden="true">{formatFull(member.score)}</span>
         </span>
+        {member.communityPoints !== undefined && <span className="block text-[11px] tabular text-t3" title="Points from published posts, comments, likes and poll votes">{formatCount(member.communityPoints)} activity pts</span>}
         <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-t4 tabular md:hidden">
           <StarIcon size={10} aria-hidden />
           {formatCount(member.stars)}

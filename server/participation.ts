@@ -1,5 +1,17 @@
 import { HttpError } from "./http.js";
 import { isHelperHistory, isHelperLeaderboard, isMemberCommunityState } from "../shared/coordination.js";
+import type { ParticipationState } from "../shared/coordination.js";
+import { communityStarHelps, STAR_HELP_POINTS } from "../shared/star-help.js";
+import type { Store } from "./store.js";
+
+export async function participationSupport(state: ParticipationState, store: Store, profile: { id: number; login: string }): Promise<ParticipationState> {
+  const records = await store.listMembers();
+  const member = records.find((record) => record.githubId === profile.id && record.login === profile.login.toLowerCase());
+  const checkedAt = member?.starSupportUpdatedAt;
+  const updatedAt = member?.starHistoryVersion === 2 && Array.isArray(member.starredRepositories) && typeof checkedAt === "number" && Number.isSafeInteger(checkedAt) && checkedAt > 0 ? checkedAt : null;
+  const members = updatedAt && member ? communityStarHelps(member.login, member.starredRepositories ?? [], new Set(records.filter((record) => !record.hidden).map((record) => record.login.toLowerCase())), Date.now()) : null;
+  return { ...state, activity: { ...state.activity, starSupport: { members, points: members === null ? null : members * STAR_HELP_POINTS, updatedAt } } };
+}
 
 export async function coordinationRequest<T>(action: "profile" | "link" | "action" | "helpers", body: unknown): Promise<T> {
   const history = action === "helpers" && Boolean(body && typeof body === "object" && "version" in body && body.version === 2);

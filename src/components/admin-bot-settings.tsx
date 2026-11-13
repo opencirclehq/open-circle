@@ -13,6 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SettingsSkeleton } from "@/components/site-skeleton";
 import { AdminBotMessages } from "@/components/admin-bot-messages";
+import { useBotAdmin } from "@/hooks/use-bot-admin";
+import { TextureButton } from "@/components/ui/texture-button";
 
 const KEY = ["admin", "bot-settings"];
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((label, value) => ({ label, value: String(value) }));
@@ -22,6 +24,7 @@ const sections = [["welcome", "Welcome"], ["schedule", "Schedule"], ["automation
 
 export default function AdminBotSettings({ onUnauthorized }: { onUnauthorized: () => void }) {
   const client = useQueryClient();
+  const groups = useBotAdmin("groups", onUnauthorized, false);
   const query = useQuery({ queryKey: KEY, queryFn: ({ signal }) => api.botSettings(signal), retry: false, gcTime: 0, refetchInterval: pollApi(60_000), refetchIntervalInBackground: false });
   const [saved, setSaved] = useState<BotSettingsInput | null>(null);
   const [draft, setDraft] = useState<BotSettingsInput | null>(null);
@@ -46,7 +49,7 @@ export default function AdminBotSettings({ onUnauthorized }: { onUnauthorized: (
   const invalidMessage = (Object.keys(MESSAGE_TEMPLATES) as (keyof typeof MESSAGE_TEMPLATES)[]).map((key) => messageTemplateError(key, draft.messages[key])).find(Boolean);
   const newer = state.version !== draft.version;
   const busy = save.isPending;
-  const optionRows = (section: string) => (Object.entries(BOT_OPTION_FIELDS) as [keyof BotOptions, typeof BOT_OPTION_FIELDS[keyof BotOptions]][]).filter(([, field]) => field.section === section).map(([key, field]) => <Control key={key} id={`bot-${key}`} label={field.label} help={field.description}>
+  const optionRows = (section: string) => (Object.entries(BOT_OPTION_FIELDS) as [keyof BotOptions, typeof BOT_OPTION_FIELDS[keyof BotOptions]][]).filter(([key, field]) => field.section === section && Object.prototype.hasOwnProperty.call(draft.options, key)).map(([key, field]) => <Control key={key} id={`bot-${key}`} label={field.label} help={field.description}>
     {typeof field.value === "boolean" ? <Switch id={`bot-${key}`} checked={draft.options[key] as boolean} disabled={busy} onCheckedChange={(value) => patchOption(key, value)} /> : key.endsWith("Day") || key.startsWith("spotlightDay") ? <SharedSelect id={`bot-${key}`} value={String(draft.options[key])} disabled={busy} onValueChange={(value) => patchOption(key, Number(value))} options={days} /> : key.endsWith("Slot") ? <SharedSelect id={`bot-${key}`} value={String(draft.options[key])} disabled={busy} onValueChange={(value) => patchOption(key, Number(value))} options={draft.policy.welcomeTimes.map((time, index) => ({ value: String(index), label: `Batch ${index + 1} · ${time}` }))} /> : <input id={`bot-${key}`} type="number" required min={field.min} max={field.max} step={1} className="field h-11 text-sm tabular" value={draft.options[key] as number} disabled={busy} onChange={(event) => patchOption(key, Number(event.target.value))} />}
   </Control>);
   const communityToggle = (key: keyof CommunitySettings, label: string, help: string) => <Control id={`bot-community-${key}`} label={label} help={help}><Switch id={`bot-community-${key}`} checked={!!draft.community[key]} disabled={busy} onCheckedChange={(value) => patchCommunity({ [key]: value })} /></Control>;
@@ -76,7 +79,7 @@ export default function AdminBotSettings({ onUnauthorized }: { onUnauthorized: (
           {communityToggle("pinRepositories", "Pin repository announcements", "Pin confirmed announcements for seven days. Requires bot admin access; uncertain pin outcomes need review.")}
           {communityToggle("weeklyBoardEnabled", "Weekly developer board snapshot", "Use verified public totals. Delayed helper totals are left out.")}
           <Control id="bot-summaryTime" label="Catch-up batch" help="All catch-up and repository content shares one of the three existing daily batches."><SharedSelect id="bot-summaryTime" value={draft.community.summaryTime} disabled={busy} onValueChange={(summaryTime) => patchCommunity({ summaryTime })} options={draft.policy.welcomeTimes.map((value) => ({ value, label: value }))} /></Control>
-          <Control id="bot-announcementsJid" label="Announcements group ID" help="Leave blank to use Open Source Circle. An alternative must already exist and give the bot admin access; this does not create or move groups."><input id="bot-announcementsJid" className="field h-11 text-sm" placeholder="Current group" maxLength={80} value={draft.community.announcementsJid} disabled={busy} onChange={(event) => patchCommunity({ announcementsJid: event.target.value })} /></Control>
+          <Control id="bot-announcementsJid" label="Announcements group" help="Use Open Source Circle or another group where the bot has admin access."><div className="space-y-2"><SharedSelect id="bot-announcementsJid" className="min-h-11 w-full" value={draft.community.announcementsJid || "current"} disabled={busy} onValueChange={(value) => patchCommunity({ announcementsJid: value === "current" ? "" : value })} options={[{ value: "current", label: "Open Source Circle" }, ...(groups.data ?? []).map((group) => ({ value: group.jid, label: group.name })), ...(draft.community.announcementsJid && !groups.data?.some((group) => group.jid === draft.community.announcementsJid) ? [{ value: draft.community.announcementsJid, label: "Saved announcements group" }] : [])]} /><TextureButton type="button" variant="minimal" className="min-h-11 w-auto" disabled={busy || groups.isFetching} onClick={() => groups.refetch()}>{groups.isFetching ? "Loading groups…" : "Load available groups"}</TextureButton></div></Control>
           {communityToggle("mentorMatching", "Volunteer mentor matching", "Match open questions to opted-in mentors, within each volunteer's own weekly limit.")}
           <NumericControl id="bot-mentorWaitHours" label="Mentor wait in hours" help="Wait this long after an unanswered question before looking for a volunteer." value={draft.community.mentorWaitHours} min={1} max={168} disabled={busy} onChange={(mentorWaitHours) => patchCommunity({ mentorWaitHours })} />
           {communityToggle("sessionsEnabled", "Weekly help and demo sessions", "Publish the upcoming sessions. When automatic group hours are on, sessions must fit inside open hours.")}

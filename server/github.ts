@@ -81,7 +81,7 @@ const OWNER_FRAGMENT = `
 fragment Owner on RepositoryOwner {
   __typename login avatarUrl(size: 160)
   ... on User {
-    name
+    name databaseId
     followers { totalCount }
     repositories(${REPO_ARGS}) { ${REPO_FIELDS} }
     starredRepositories(${STAR_ARGS}) { ${STAR_FIELDS} }
@@ -111,6 +111,7 @@ interface OwnerNode {
   login: string;
   avatarUrl: string;
   name?: string | null;
+  databaseId?: number;
   followers?: { totalCount: number };
   repositories?: RepoConnection;
   starredRepositories?: StarConnection;
@@ -348,6 +349,7 @@ async function lookupBatch(
           result = {
             kind: "user",
             stats: {
+              ...(Number.isSafeInteger(node.databaseId) && node.databaseId! > 0 ? { githubId: node.databaseId } : {}),
               login: node.login,
               name: node.name ?? null,
               avatarUrl: node.avatarUrl,

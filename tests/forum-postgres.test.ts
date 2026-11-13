@@ -24,10 +24,13 @@ describe.skipIf(!url)("PostgreSQL forum contract", () => {
   it("enforces vote uniqueness in PostgreSQL, persists across connections and rolls back failed transactions", async () => {
     const post = await commandForum(store, admin, command({ action: "create", kind: "discussion", content, publish: true, poll }));
     await commandForum(store, alice, command({ action: "vote", id: post.id, ballot: post.poll!.ballot, optionId: "option_1" }));
+    const commented = await commandForum(store, alice, command({ action: "comment", id: post.id, body: "A persistent comment" }));
+    await commandForum(store, alice, command({ action: "like", id: post.id, commentId: commented.comments[0].id, liked: true }));
     await expect(pool.query("INSERT INTO opencircle_forum_votes(thread_id,voter_id,option_id) VALUES($1,$2,$3)", [post.id, alice.profile.id, "option_2"])).rejects.toMatchObject({ code: "23505" });
     await expect(store.transact(post.id, true, (data) => { data.thread!.hidden = true; throw new Error("Abort save"); })).rejects.toThrow("Abort save");
     const another = new PostgresForumStore(pool);
-    expect(await readForum(another, alice, post.id)).toMatchObject({ hidden: false, poll: { total: 1, selected: "option_1" } });
+    expect(await readForum(another, alice, post.id)).toMatchObject({ hidden: false, comments: [{ likeCount: 1, liked: true }], poll: { total: 1, selected: "option_1" } });
+    expect(await another.readActivity()).toEqual(await store.readActivity());
   });
   it("serializes closure against votes and cannot commit a vote after closure", async () => {
     const post = await commandForum(store, admin, command({ action: "create", kind: "discussion", content, publish: true, poll }));

@@ -1,3 +1,4 @@
+import { botAdminFixture } from "./helpers/bot-admin";
 import type { ReactNode } from "react";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -17,7 +18,7 @@ import { boardFixture } from "./helpers/fixtures";
 vi.mock("../src/lib/api", async (original) => ({
   ...await original<typeof import("../src/lib/api")>(),
   api: {
-    adminSession: vi.fn(), adminState: vi.fn(), adminTools: vi.fn(), adminAnalytics: vi.fn(),
+    botAdmin: vi.fn(), adminSession: vi.fn(), adminState: vi.fn(), adminTools: vi.fn(), adminAnalytics: vi.fn(),
     adminSignOut: vi.fn(), approveTool: vi.fn(), removeTool: vi.fn(),
   },
 }));
@@ -47,6 +48,7 @@ function renderWithQueries(children: ReactNode) {
 }
 
 beforeEach(() => {
+  vi.mocked(api.botAdmin).mockReset().mockResolvedValue(botAdminFixture());
   vi.mocked(api.adminSession).mockReset().mockResolvedValue({ configured: true, profile });
   vi.mocked(api.adminState).mockReset().mockResolvedValue(state);
   vi.mocked(api.adminTools).mockReset().mockResolvedValue([]);

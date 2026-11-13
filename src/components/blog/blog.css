@@ -1,0 +1,76 @@
+/* Shared action buttons (.forum-action) come from the community styles. */
+@import "../forum/forum.css";
+
+.blog-body { overflow-wrap: anywhere; font-size: 1.0625rem; line-height: 1.8; color: hsl(var(--t2)); }
+.blog-body > * + * { margin-top: 1.15em; }
+.blog-body h2, .blog-body h3, .blog-body h4 { color: hsl(var(--foreground)); font-weight: 600; letter-spacing: -.02em; line-height: 1.3; margin-top: 1.9em; }
+.blog-body h2 { font-size: 1.5rem; }
+.blog-body h3 { font-size: 1.25rem; }
+.blog-body h4 { font-size: 1.0625rem; }
+.blog-body strong { color: hsl(var(--foreground)); font-weight: 600; }
+.blog-body a { color: hsl(var(--foreground)); text-decoration: underline; text-decoration-color: hsl(var(--foreground) / .35); text-underline-offset: 3px; }
+.blog-body a:hover { text-decoration-color: currentColor; }
+.blog-body a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
+.blog-body img { display: block; max-width: 100%; height: auto; margin-inline: auto; border-radius: 14px; }
+.blog-body pre { max-width: 100%; overflow: auto; padding: 1rem 1.15rem; border-radius: 14px; background: hsl(var(--foreground) / .05); font-size: .875rem; line-height: 1.65; }
+.blog-body code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875em; }
+.blog-body :not(pre) > code { padding: .15em .35em; border-radius: 5px; background: hsl(var(--foreground) / .07); }
+.blog-body ul { list-style: disc; padding-left: 1.4em; }
+.blog-body ol { list-style: decimal; padding-left: 1.4em; }
+.blog-body li + li { margin-top: .35em; }
+/* Task items swap their bullet for the checkbox; plain items in the same list keep theirs. */
+.blog-body li.task-list-item { list-style: none; }
+.blog-body li.task-list-item > input[type="checkbox"] { margin: 0 .5em 0 -1.4em; vertical-align: -.1em; }
+.blog-body blockquote { padding: .25rem 0 .25rem 1.1rem; border-left: 3px solid hsl(var(--foreground) / .2); color: hsl(var(--t3)); }
+.blog-body hr { border: 0; border-top: 1px solid hsl(var(--foreground) / .1); margin-block: 2.25em; }
+.blog-body table { display: block; max-width: 100%; overflow: auto; border-collapse: collapse; font-size: .9375rem; }
+.blog-body th, .blog-body td { border-bottom: 1px solid hsl(var(--foreground) / .1); padding: .5rem .85rem; text-align: left; vertical-align: top; }
+.blog-body th { color: hsl(var(--foreground)); font-weight: 600; }
+@media (max-width: 479px) { .blog-body { font-size: 1rem; } .blog-body h2 { font-size: 1.3rem; } }
+
+.blog-topic { display: inline-flex; max-width: 100%; align-items: center; border-radius: 999px; padding: 4px 10px; background: hsl(var(--foreground) / .06); color: hsl(var(--t2)); font-size: 12px; line-height: 18px; }
+.blog-card + .blog-card { border-top: 1px solid hsl(var(--foreground) / .08); }
+.blog-card-link:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 6px; border-radius: 10px; }
+
+/* The editor follows the site's own light and dark tokens. Two classes outrank
+   the editor's stylesheet, which loads later with the page. */
+.mdxeditor.blog-editor {
+  --baseBase: hsl(var(--card)); --baseBgSubtle: hsl(var(--foreground) / .03); --baseBg: hsl(var(--foreground) / .05);
+  --baseBgHover: hsl(var(--foreground) / .08); --baseBgActive: hsl(var(--foreground) / .12); --baseLine: hsl(var(--foreground) / .1);
+  --baseBorder: hsl(var(--foreground) / .14); --baseBorderHover: hsl(var(--foreground) / .22); --baseSolid: hsl(var(--t4));
+  --baseSolidHover: hsl(var(--t3)); --baseText: hsl(var(--t2)); --baseTextContrast: hsl(var(--foreground)); --basePageBg: hsl(var(--background));
+  --accentBase: hsl(var(--card)); --accentBgSubtle: hsl(var(--foreground) / .04); --accentBg: hsl(var(--foreground) / .08);
+  --accentBgHover: hsl(var(--foreground) / .12); --accentBgActive: hsl(var(--foreground) / .16); --accentLine: hsl(var(--foreground) / .2);
+  --accentBorder: hsl(var(--foreground) / .3); --accentBorderHover: hsl(var(--foreground) / .45); --accentSolid: hsl(var(--foreground));
+  --accentSolidHover: hsl(var(--foreground) / .85); --accentText: hsl(var(--foreground)); --accentTextContrast: hsl(var(--background));
+  --font-body: inherit; --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  min-width: 0; border-radius: 18px; background: hsl(var(--foreground) / .035); color: hsl(var(--t2));
+}
+.mdxeditor.blog-editor:focus-within { outline: 1px solid hsl(var(--foreground) / .25); }
+.blog-editor .mdxeditor-toolbar { position: sticky; top: 0; z-index: 2; flex-wrap: wrap; overflow: visible; border-radius: 18px 18px 0 0; background: hsl(var(--card)); }
+.blog-editor .mdxeditor-root-contenteditable { min-height: 22rem; }
+.blog-editor .blog-editor-content { min-height: 22rem; padding: 1.1rem 1.25rem 2rem; outline: none; }
+.blog-editor .mdxeditor-source-editor { min-height: 22rem; }
+.mdxeditor-popup-container { z-index: 60; }
+/* Source mode and code blocks use CodeMirror's light theme; recolour it from the site tokens. */
+.mdxeditor.blog-editor .cm-editor { background-color: transparent; color: hsl(var(--t2)); }
+.mdxeditor.blog-editor .cm-gutters { border-right: 1px solid hsl(var(--foreground) / .08); background-color: transparent; color: hsl(var(--t4)); }
+.mdxeditor.blog-editor .cm-activeLine, .mdxeditor.blog-editor .cm-activeLineGutter { background-color: hsl(var(--foreground) / .04); }
+.mdxeditor.blog-editor .cm-content { caret-color: hsl(var(--foreground)); }
+.mdxeditor.blog-editor .cm-cursor { border-left-color: hsl(var(--foreground)); }
+.mdxeditor.blog-editor .cm-editor .cm-selectionBackground, .mdxeditor.blog-editor .cm-editor.cm-focused .cm-selectionBackground, .mdxeditor.blog-editor .cm-content ::selection { background-color: hsl(var(--foreground) / .2); }
+
+/* Embeds: a YouTube video or GitHub Gist link on its own line. */
+.blog-embed { margin-block: 1.6em; }
+.blog-embed-video { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 14px; background: hsl(var(--foreground) / .06); }
+.blog-embed-video > iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.blog-embed-gist { display: block; width: 100%; height: 14rem; border: 0; border-radius: 10px; background: #fff; color-scheme: light; }
+.blog-embed figcaption { margin-top: .5rem; font-size: .8125rem; color: hsl(var(--t3)); }
+.blog-embed figcaption a { color: inherit; }
+
+.blog-repository { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.1rem; border-radius: 16px; background: hsl(var(--foreground) / .045); }
+.blog-repository:hover { background: hsl(var(--foreground) / .07); }
+.blog-repository:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.blog-author-link { display: inline-flex; min-width: 0; align-items: center; gap: .75rem; border-radius: 12px; }
+.blog-author-link:hover .blog-author-name { text-decoration: underline; text-underline-offset: 4px; }
+.blog-author-link:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 4px; }

@@ -13,6 +13,14 @@ const entries: LeaderboardEntry[] = ["Avery", "Sam", "Zoe"].map((name, index) =>
   seed: name,
 }));
 
+it("keeps progression, activity points and medal artwork together", () => {
+  render(<LeaderboardPodium entries={[{ ...entries[0], currentStreak: 7, communityPoints: 42 }]} />);
+
+  expect(screen.getByTitle("7-day activity streak")).toBeTruthy();
+  expect(screen.getByText("42 activity pts")).toBeTruthy();
+  expect(screen.getByRole("list").querySelector('img[src="/images/podium/star-gold.png"]')).toBeTruthy();
+});
+
 it("keeps medals tied to rank as members move and identifies the current user separately", async () => {
   const { rerender } = render(<LeaderboardPodium entries={entries} currentUserId="sam" />);
   const slots = screen.getAllByRole("listitem");

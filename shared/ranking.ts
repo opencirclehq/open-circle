@@ -34,8 +34,8 @@ export function contributionStart(joinedAt: number): number {
   return day.getTime();
 }
 
-export function communityScore(githubScore: number, helperPoints = 0): number {
-  return Math.max(0, helperPoints) + Math.min(HELPER_POLICY.reputationCap, Math.max(0, githubScore));
+export function communityScore(githubScore: number, helperPoints = 0, communityPoints = 0): number {
+  return Math.max(0, helperPoints) + Math.max(0, communityPoints) + Math.min(HELPER_POLICY.reputationCap, Math.max(0, githubScore));
 }
 
 interface Standing {

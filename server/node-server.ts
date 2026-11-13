@@ -6,6 +6,7 @@ import * as eventUploads from "../api/event-uploads.js";
 import * as eventMedia from "../api/event-media.js";
 import * as eventCover from "../api/event-cover.js";
 import * as botSettings from "../api/bot-settings.js";
+import * as botAdmin from "../api/bot-admin.js";
 /**
  * Standalone Node server for hosts that aren't Vercel (e.g. Pxxl): serves the
  * built SPA from dist/ and the same api/*.ts handlers on the same paths.
@@ -28,6 +29,7 @@ import * as forum from "../api/forum.js";
 import * as forumAdmin from "../api/forum-admin.js";
 import * as community from "../api/community.js";
 import * as tools from "../api/tools.js";
+import * as components from "../api/components.js";
 import * as repositoryStars from "../api/repository-stars.js";
 import * as vote from "../api/vote.js";
 import * as board from "../api/board.js";
@@ -50,6 +52,11 @@ import { eventSeoDocument } from "./event-seo.js";
 import { communitySeoDocument } from "./forum-seo.js";
 import * as forumPreview from "../api/forum-preview.js";
 import * as forumImage from "../api/forum-image.js";
+import * as blog from "../api/blog.js";
+import * as blogAdmin from "../api/blog-admin.js";
+import * as blogImage from "../api/blog-image.js";
+import { blogPageSeoDocument, blogSitemapEntries } from "./blog-seo.js";
+import { sitemapXml } from "../shared/seo.js";
 
 type Handler = (req: Request) => Promise<Response>;
 const routes: Record<string, Record<string, Handler | undefined>> = {
@@ -61,6 +68,7 @@ const routes: Record<string, Record<string, Handler | undefined>> = {
   analytics: analytics as Record<string, Handler>,
   admin: admin as Record<string, Handler>,
   "bot-settings": botSettings as Record<string, Handler>,
+  "bot-admin": botAdmin as Record<string, Handler>,
   "admin-session": adminSession as Record<string, Handler>,
   auth: auth as Record<string, Handler>,
   "auth-start": authStart as Record<string, Handler>,
@@ -70,8 +78,12 @@ const routes: Record<string, Record<string, Handler | undefined>> = {
   "forum-preview": forumPreview as Record<string, Handler>,
   "forum-image": forumImage as Record<string, Handler>,
   "forum-admin": forumAdmin as Record<string, Handler>,
+  blog: blog as Record<string, Handler>,
+  "blog-admin": blogAdmin as Record<string, Handler>,
+  "blog-image": blogImage as Record<string, Handler>,
   community: community as Record<string, Handler>,
   tools: tools as Record<string, Handler>,
+  components: components as Record<string, Handler>,
   vote: vote as Record<string, Handler>,
   "repository-stars": repositoryStars as Record<string, Handler>,
   board: board as Record<string, Handler>,
@@ -153,6 +165,14 @@ export function createAppServer(distDirectory = path.resolve(process.cwd(), "dis
       return;
     }
 
+    // The built sitemap lists static pages; published posts are added per request.
+    if (url.pathname === "/sitemap.xml") {
+      const origin = originFromHtml(existsSync(INDEX) ? readFileSync(INDEX, "utf8") : "", process.env.SITE_URL || DEFAULT_SITE_URL);
+      const entries = await blogSitemapEntries().catch((error) => { console.error(error); return []; });
+      res.writeHead(200, { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=300" }).end(sitemapXml(origin, undefined, entries));
+      return;
+    }
+
     // Static files, falling back to index.html for client-side routes.
     if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
       const destination = url.pathname.replace(/^\/+/, "/").replace(/\/+$/, "") || "/";
@@ -184,7 +204,7 @@ export function createAppServer(distDirectory = path.resolve(process.cwd(), "dis
         }
         return;
       }
-      if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/portfolio" || pathname === "/community" || pathname.startsWith("/community/")) {
+      if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/portfolio" || pathname === "/community" || pathname.startsWith("/community/") || pathname === "/blog/mine" || pathname.startsWith("/blog/write")) {
         res.setHeader("x-robots-tag", "noindex, nofollow");
         res.setHeader("cache-control", "no-store");
         res.setHeader("x-frame-options", "DENY");
@@ -198,7 +218,7 @@ export function createAppServer(distDirectory = path.resolve(process.cwd(), "dis
       const raw = readFileSync(INDEX, "utf8");
       const origin = originFromHtml(raw, process.env.SITE_URL || DEFAULT_SITE_URL);
       let document = seoDocument(pathname, origin);
-      try { document = await communitySeoDocument(pathname, origin) ?? await eventSeoDocument(pathname, origin) ?? document; }
+      try { document = await communitySeoDocument(pathname, origin) ?? await eventSeoDocument(pathname, origin) ?? await blogPageSeoDocument(pathname, origin) ?? document; }
       catch (error) {
         console.error(error);
         document = { ...document, status: 503 };
