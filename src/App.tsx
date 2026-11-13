@@ -18,6 +18,7 @@ const Community = lazy(() => import("./pages/Community"));
 const Participation = lazy(() => import("./pages/Participation"));
 const PublicPortfolio = lazy(() => import("./pages/PublicPortfolio"));
 const Blog = lazy(() => import("./pages/Blog"));
+const Components = lazy(() => import("./pages/Components"));
 const portfolioSlug = portfolioSlugFromHostname(window.location.hostname);
 
 const queryClient = new QueryClient();
@@ -45,6 +46,8 @@ const App = () => (
               <Route path="/blog/write" element={<Blog view="write" />} />
               <Route path="/blog/write/:id" element={<Blog view="write" />} />
               <Route path="/blog/:slug" element={<Blog view="post" />} />
+              <Route path="/components" element={<Components />} />
+              <Route path="/components/:slug" element={<Components />} />
               <Route path="/events" element={<Events />} />
               <Route path="/events/:slug" element={<Events />} />
               <Route path="/admin" element={<Admin />} />

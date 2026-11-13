@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import pkg from "./package.json";
@@ -41,6 +41,26 @@ const CHUNKS: [string, (name: string) => boolean][] = [
   ["editor-lexical", (name) => name === "lexical" || name.startsWith("@lexical/")],
 ];
 
+/**
+ * App routes that share a name with a root file (/components vs the shadcn
+ * components.json) would otherwise be served that file by the dev server.
+ * Page loads of those routes get the app instead. Production serves dist/,
+ * where those files don't exist, so this is dev-only.
+ */
+function spaRouteShadowing(routes: string[]): Plugin {
+  return {
+    name: "opencircle:spa-route-shadowing",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        const path = (req.url ?? "").split("?")[0];
+        if (req.headers.accept?.includes("text/html") && routes.includes(path)) req.url = "/index.html";
+        next();
+      });
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode, isSsrBuild }) => {
   // The dev API reads GITHUB_TOKEN, ADMIN_GITHUB_IDS etc. from process.env, like Vercel does.
@@ -48,7 +68,7 @@ export default defineConfig(({ mode, isSsrBuild }) => {
   for (const [key, value] of Object.entries(env)) process.env[key] ??= value;
 
   return {
-    plugins: [react(), devApi(), ...(isSsrBuild ? [] : [seo(env.SITE_URL || DEFAULT_SITE_URL)])],
+    plugins: [react(), spaRouteShadowing(["/components"]), devApi(), ...(isSsrBuild ? [] : [seo(env.SITE_URL || DEFAULT_SITE_URL)])],
     // The server bundle serves dist/, so it needs no copy of public/.
     publicDir: isSsrBuild ? false : "public",
     define: {
