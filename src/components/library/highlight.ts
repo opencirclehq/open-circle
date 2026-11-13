@@ -15,7 +15,7 @@ const PATTERN = new RegExp([
   String.raw`([A-Za-z_$][\w$-]*)(?==[{"'\x60])`, // 7 JSX attribute
   String.raw`([A-Za-z_$][\w$]*)(?=\s*\()`, // 8 call
   String.raw`\b([A-Z][\w$]*)\b`, // 9 type or component
-  String.raw`([{}()[\];,.=<>/?:!&|+*%-]+)`, // 10 punctuation
+  String.raw`((?:(?!<\/?[A-Za-z])[{}()[\];,.=<>/?:!&|+*%-])+)`, // 10 punctuation, stopping before a tag
 ].join("|"), "g");
 
 export function tokenize(code: string): Token[] {

@@ -12,7 +12,7 @@ export const MAX_OPEN_SUBMISSIONS = 500;
 
 export interface ComponentSubmissionStore {
   list(): Promise<ComponentSubmission[]>;
-  /** False when the same link was already sent and hasn't been deleted. */
+  /** False when a component with the same slug was already sent and hasn't been deleted. */
   create(submission: ComponentSubmission): Promise<boolean>;
   review(id: string, status: ComponentSubmissionStatus, reviewer: string): Promise<ComponentSubmission | null>;
   remove(id: string): Promise<void>;
@@ -53,7 +53,7 @@ export class MemoryComponentSubmissionStore implements ComponentSubmissionStore 
 
   async create(submission: ComponentSubmission) {
     const all = [...this.records.values()];
-    if (all.some((record) => record.link === submission.link)) return false;
+    if (all.some((record) => record.slug === submission.slug)) return false;
     if (all.filter((record) => record.status === "pending").length >= MAX_OPEN_SUBMISSIONS) throw tooMany();
     this.records.set(submission.id, submission);
     this.save();
@@ -75,7 +75,7 @@ export class MemoryComponentSubmissionStore implements ComponentSubmissionStore 
 }
 
 const KEY = "oc:components:submissions";
-const LINKS = "oc:components:links";
+const SLUGS = "oc:components:slugs";
 
 export class RedisComponentSubmissionStore implements ComponentSubmissionStore {
   private readonly redis: Redis;
@@ -90,8 +90,8 @@ export class RedisComponentSubmissionStore implements ComponentSubmissionStore {
 
   async create(submission: ComponentSubmission) {
     if ((await this.list()).filter((record) => record.status === "pending").length >= MAX_OPEN_SUBMISSIONS) throw tooMany();
-    // The link index claims the link atomically, so two identical submissions can't both land.
-    if (!await this.redis.hsetnx(LINKS, submission.link, submission.id)) return false;
+    // The slug index claims the name atomically, so two identical submissions can't both land.
+    if (!await this.redis.hsetnx(SLUGS, submission.slug, submission.id)) return false;
     await this.redis.hset(KEY, { [submission.id]: JSON.stringify(submission) });
     return true;
   }
@@ -108,7 +108,7 @@ export class RedisComponentSubmissionStore implements ComponentSubmissionStore {
     const raw = await this.redis.hget<string>(KEY, id);
     if (!raw) return;
     await this.redis.hdel(KEY, id);
-    await this.redis.hdel(LINKS, (JSON.parse(raw) as ComponentSubmission).link);
+    await this.redis.hdel(SLUGS, (JSON.parse(raw) as ComponentSubmission).slug);
   }
 }
 
@@ -128,8 +128,8 @@ export class PostgresComponentSubmissionStore implements ComponentSubmissionStor
       const { rows } = await client.query<{ count: number }>("SELECT COUNT(*)::integer AS count FROM opencircle_component_submissions WHERE status = 'pending'");
       if (rows[0].count >= MAX_OPEN_SUBMISSIONS) throw tooMany();
       const { rowCount } = await client.query(
-        "INSERT INTO opencircle_component_submissions (id, link, status, created_at, record) VALUES ($1, $2, $3, $4, $5::jsonb) ON CONFLICT DO NOTHING",
-        [submission.id, submission.link, submission.status, submission.createdAt, JSON.stringify(submission)],
+        "INSERT INTO opencircle_component_submissions (id, slug, status, created_at, record) VALUES ($1, $2, $3, $4, $5::jsonb) ON CONFLICT DO NOTHING",
+        [submission.id, submission.slug, submission.status, submission.createdAt, JSON.stringify(submission)],
       );
       await client.query("COMMIT");
       return rowCount === 1;

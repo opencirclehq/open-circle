@@ -29,8 +29,7 @@ export default function Components() {
       <div className="app-backdrop" aria-hidden />
       <AccountCorner />
       <TooltipProvider delayDuration={200}>
-        {/* The preview page runs wider so full-width components like the footer have room. */}
-        <main className={cn("relative z-10 mx-auto w-full min-w-0 px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-28", slug ? "max-w-[100rem] lg:px-8" : "max-w-6xl")}>
+        <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-28">
           {slug ? <Detail slug={slug} /> : <Library />}
         </main>
       </TooltipProvider>
@@ -108,25 +107,24 @@ function ComponentCard({ item }: { item: LibraryItem }) {
     // The link stretches over the card from the title, so the demo's own links never sit inside it.
     <article className="surface group relative flex h-full flex-col rounded-[28px] p-2 transition-transform duration-300 focus-within:-translate-y-0.5 hover:-translate-y-0.5">
       {/* The preview sits inset and rounded; its tags float in the top-right corner. */}
-      <div className={cn("relative overflow-hidden rounded-[22px] bg-[#0b0d12]", wide ? "h-56 sm:h-72 lg:h-[22rem]" : "h-64 lg:h-[22rem]")}>
+      {/* The preview grows to fill the card, leaving only the name beneath it. */}
+      <div className={cn("relative flex-1 overflow-hidden rounded-[22px] bg-[#0b0d12]", wide ? "min-h-56 sm:min-h-72" : "min-h-64")}>
         {wide
-          ? <ScaledPreview width={1120} className="h-full w-full"><item.Demo theme="dark" /></ScaledPreview>
-          : <div className="pointer-events-none flex h-full items-center justify-center" aria-hidden inert><item.Demo theme="dark" /></div>}
+          ? <ScaledPreview width={item.designWidth ?? 1120} className="!absolute inset-0"><item.Demo theme="dark" /></ScaledPreview>
+          : <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden inert><item.Demo theme="dark" /></div>}
         <div className="absolute right-3 top-3 flex max-w-[70%] flex-wrap justify-end gap-1">
           {[item.category, ...item.tags.slice(0, 2)].map((tag) => (
             <span key={tag} className="rounded-full bg-black/45 px-2.5 py-1 text-[11px] text-white/85 backdrop-blur-md">{tag}</span>
           ))}
         </div>
       </div>
-      <div className="px-3 pb-3 pt-4">
+      <div className="shrink-0 px-3 pb-2 pt-3">
         <Link
           to={`/components/${item.slug}`}
-          aria-label={`${item.name}: ${item.description}`}
           className="block truncate font-medium tracking-tight [outline-style:none] after:absolute after:inset-0 after:z-10 after:rounded-[28px] focus-visible:after:ring-2 focus-visible:after:ring-foreground/40"
         >
           {item.name}
         </Link>
-        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-t3">{item.description}</p>
       </div>
     </article>
   );
@@ -220,7 +218,10 @@ function Detail({ slug }: { slug: string }) {
                 className="flex min-h-[22rem] w-full items-center justify-center pt-10 sm:pt-6"
                 data-testid="preview-stage"
               >
-                <div className="w-full"><item.Demo theme={canvas} /></div>
+                {/* Full-width components keep their real layout and scale down to the canvas. */}
+                {item.designWidth
+                  ? <ScaledPreview width={item.designWidth} interactive className="w-full"><item.Demo theme={canvas} /></ScaledPreview>
+                  : <div className="w-full"><item.Demo theme={canvas} /></div>}
               </motion.div>
             </div>
           </TabsContent>
@@ -270,11 +271,10 @@ function ComponentNav({ current }: { current: string }) {
               <Link
                 to={`/components/${item.slug}`}
                 aria-current={active ? "page" : undefined}
-                className={cn("relative flex min-h-10 items-center justify-between gap-2.5 rounded-2xl px-3.5 text-sm transition-colors", active ? "text-foreground" : "text-t3 hover:text-foreground")}
+                className={cn("relative flex min-h-10 items-center rounded-2xl px-3.5 text-sm transition-colors", active ? "text-foreground" : "text-t3 hover:text-foreground")}
               >
                 {active && <motion.span layoutId="library-nav-pill" className="absolute inset-0 rounded-[inherit] bg-foreground/[0.08]" transition={SPRING} />}
-                <span className="relative">{item.name}</span>
-                <span className="relative text-[11px] text-t4">{item.category}</span>
+                <span className="relative truncate">{item.name}</span>
               </Link>
             </li>
           );

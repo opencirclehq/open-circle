@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { componentMarkdown } from "@shared/components";
 import { BoltIcon, CodeSquareIcon, GalleryIcon, PaletteIcon } from "@solar-icons/react/bold-duotone";
 import { IconFolder } from "./items/icon-folder";
 import iconFolderSource from "./items/icon-folder.tsx?raw";
@@ -23,6 +24,8 @@ export interface LibraryItem {
   credit?: string;
   /** Bento card size on the library grid. */
   card: "wide" | "tall";
+  /** Width the component is laid out at before scaling down to fit, for full-width components. */
+  designWidth?: number;
   /** Live demo with sample props; receives the preview canvas theme. */
   Demo: ComponentType<{ theme: CanvasTheme }>;
 }
@@ -86,6 +89,7 @@ export const LIBRARY: LibraryItem[] = [
 />`,
     credit: "Adapted from the Dailo landing footer.",
     card: "wide",
+    designWidth: 1200,
     Demo: FooterDemo,
   },
   {
@@ -122,30 +126,5 @@ export function searchLibrary(query: string) {
 
 /** A paste-ready Markdown page: what it is, how to use it and the full source. */
 export function itemMarkdown(item: LibraryItem) {
-  const extension = item.file.split(".").pop() ?? "tsx";
-  return [
-    `# ${item.name}`,
-    "",
-    item.description,
-    "",
-    `**Category:** ${item.category} · **Tags:** ${item.tags.join(", ")}`,
-    "",
-    "## Requirements",
-    "",
-    `React and Tailwind CSS${item.dependencies.length ? `, plus: ${item.dependencies.join(", ")}` : ". No other packages."}`,
-    "",
-    "## Usage",
-    "",
-    "```tsx",
-    item.usage,
-    "```",
-    "",
-    `## Source (\`${item.file}\`)`,
-    "",
-    `\`\`\`${extension}`,
-    item.source.trimEnd(),
-    "```",
-    ...(item.credit ? ["", `_${item.credit}_`] : []),
-    "",
-  ].join("\n");
+  return componentMarkdown(item);
 }

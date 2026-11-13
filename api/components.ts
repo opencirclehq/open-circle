@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { COMPONENT_STATUSES, parseComponentSubmission, type ComponentSubmission, type ComponentSubmissionStatus } from "../shared/components.js";
+import { COMPONENT_MAX_BYTES, COMPONENT_STATUSES, componentSlug, parseComponentSubmission, type ComponentSubmission, type ComponentSubmissionStatus } from "../shared/components.js";
 import { apiHandler } from "../server/api-security.js";
 import { authorize } from "../server/admin.js";
 import { getCommunityStore } from "../server/community-store.js";
@@ -40,18 +40,19 @@ export function POST(req: Request): Promise<Response> {
     ]);
     if (limits.some((allowed) => !allowed))
       throw new HttpError(429, "rate_limited", "You've sent several components. Try again in an hour.", undefined, { "retry-after": "3600" });
-    const parsed = parseComponentSubmission(await readJson(req));
+    const parsed = parseComponentSubmission(await readJson(req, COMPONENT_MAX_BYTES));
     if (!parsed.ok) throw new HttpError(400, "invalid_submission", parsed.error, parsed.field);
     const profile = await githubProfile(req, getCommunityStore()).catch(() => null);
     const submission: ComponentSubmission = {
       ...parsed.value,
       id: randomUUID(),
+      slug: componentSlug(parsed.value.name),
       status: "pending",
       createdAt: Date.now(),
       submitter: profile ? { login: profile.login, avatarUrl: profile.avatarUrl } : null,
     };
     if (!await getComponentSubmissionStore().create(submission))
-      throw new HttpError(409, "submission_exists", "That component has already been sent for review.", "link");
+      throw new HttpError(409, "submission_exists", "A component with that name has already been sent. Try a more specific name.", "name");
     return json({ id: submission.id, status: submission.status }, 201, session.headers);
   });
 }
@@ -71,7 +72,7 @@ export function PATCH(req: Request): Promise<Response> {
   });
 }
 
-/** Admins: remove a submission for good, freeing its link to be sent again. */
+/** Admins: remove a submission for good, freeing its name to be sent again. */
 export function DELETE(req: Request): Promise<Response> {
   return apiHandler(req, async () => {
     await authorize(req);

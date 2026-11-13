@@ -9,6 +9,7 @@ import type {
   RegisterInput,
   RegisterResult,
 } from "@shared/types";
+import type { ComponentSubmission, ComponentSubmissionInput, ComponentSubmissionStatus } from "@shared/components";
 import type { CommunityState, CommunityTool, ToolInput, ToolVoteInput, ToolVoteResult, VoteInput, VoteResult } from "@shared/community";
 import type { LinkChallenge, ParticipationAction, ParticipationState } from "@shared/coordination";
 import type { AdminAnalytics, AnalyticsDays } from "@shared/analytics";
@@ -101,6 +102,18 @@ export const api = {
     body: JSON.stringify({ id, action: "approve" }),
   }),
   removeTool: (id: string) => request<{ ok: boolean }>("/api/tools", {
+    method: "DELETE",
+    headers: { "x-opencircle-admin": "1" },
+    body: JSON.stringify({ id }),
+  }),
+  submitComponent: (input: ComponentSubmissionInput) => request<{ id: string; status: ComponentSubmissionStatus }>("/api/components", { method: "POST", body: JSON.stringify(input) }),
+  adminComponents: (signal?: AbortSignal) => request<ComponentSubmission[]>("/api/components", { signal, cache: "no-store" }),
+  reviewComponent: (id: string, status: ComponentSubmissionStatus) => request<ComponentSubmission>("/api/components", {
+    method: "PATCH",
+    headers: { "x-opencircle-admin": "1" },
+    body: JSON.stringify({ id, status }),
+  }),
+  removeComponent: (id: string) => request<{ ok: boolean }>("/api/components", {
     method: "DELETE",
     headers: { "x-opencircle-admin": "1" },
     body: JSON.stringify({ id }),
