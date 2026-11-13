@@ -79,6 +79,13 @@ export class MemoryStore implements Store {
     save(this.data);
   }
 
+  async mergeAchievements(login: string, awards: Record<string, number>) {
+    const m = this.data.members[login];
+    if (!m || Object.keys(awards).length === 0) return;
+    this.data.members[login] = { ...m, achievements: { ...awards, ...(m.achievements ?? {}) } };
+    save(this.data);
+  }
+
   async deleteMember(login: string) {
     delete this.data.members[login];
     save(this.data);

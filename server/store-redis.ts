@@ -41,6 +41,18 @@ if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
 redis.call('HSET', KEYS[1], unpack(ARGV))
 return 1`;
 
+// Two award writers merging at once must union, not clobber, their awards.
+const MERGE_ACHIEVEMENTS = `
+if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
+local raw = redis.call('HGET', KEYS[1], 'achievements')
+local existing = {}
+if raw and raw ~= '' then existing = cjson.decode(raw) end
+for id, at in pairs(cjson.decode(ARGV[1])) do
+  if existing[id] == nil then existing[id] = at end
+end
+redis.call('HSET', KEYS[1], 'achievements', cjson.encode(existing))
+return 1`;
+
 const RATE_LIMIT = `
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end
@@ -97,6 +109,11 @@ export class RedisStore implements Store {
     const fields = Object.entries(encodeMember(patch)).flat();
     if (fields.length === 0) return;
     await this.redis.eval(PATCH, [keys.member(login)], fields);
+  }
+
+  async mergeAchievements(login: string, awards: Record<string, number>): Promise<void> {
+    if (Object.keys(awards).length === 0) return;
+    await this.redis.eval(MERGE_ACHIEVEMENTS, [keys.member(login)], [JSON.stringify(awards)]);
   }
 
   async deleteMember(login: string): Promise<void> {
