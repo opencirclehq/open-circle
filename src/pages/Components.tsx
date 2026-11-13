@@ -2,17 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Widget4Icon } from "@solar-icons/react/bold-duotone";
-import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, CopyIcon, DocumentTextIcon, MagnifierIcon, MoonIcon, RestartIcon, Sun2Icon } from "@solar-icons/react/linear";
+import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, MagnifierIcon, MoonIcon, RestartIcon, Sun2Icon } from "@solar-icons/react/linear";
 import { AccountCorner } from "@/components/account-corner";
 import { Dock } from "@/components/dock";
-import { CodeView, copyText } from "@/components/library/code-view";
+import { CodeView } from "@/components/library/code-view";
+import { CopyMenu } from "@/components/library/copy-menu";
 import { ScaledPreview } from "@/components/library/scaled-preview";
 import { SubmitDialog } from "@/components/library/submit-dialog";
 import { MetalButton } from "@/components/metal-button";
 import { SiteFooter } from "@/components/site-footer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePageMeta } from "@/hooks/use-page-meta";
 import { findItem, itemMarkdown, LIBRARY, searchLibrary, type CanvasTheme, type LibraryItem } from "@/library/registry";
 import { cn } from "@/lib/utils";
@@ -28,11 +28,9 @@ export default function Components() {
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="app-backdrop" aria-hidden />
       <AccountCorner />
-      <TooltipProvider delayDuration={200}>
-        <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-28">
-          {slug ? <Detail slug={slug} /> : <Library />}
-        </main>
-      </TooltipProvider>
+      <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-28">
+        {slug ? <Detail slug={slug} /> : <Library />}
+      </main>
       <SiteFooter />
       <Dock />
     </div>
@@ -185,10 +183,10 @@ function Detail({ slug }: { slug: string }) {
                 </TabsTrigger>
               ))}
             </TabsList>
-            <div className="flex items-center gap-1.5">
-              <IconAction label="Copy code" onClick={() => void copyText(item.source, `${item.file} copied.`)}><CopyIcon className="size-4" aria-hidden /></IconAction>
-              <IconAction label="Copy as Markdown" onClick={() => void copyText(itemMarkdown(item), "Markdown copied.")}><DocumentTextIcon className="size-4" aria-hidden /></IconAction>
-            </div>
+            <CopyMenu options={[
+              { id: "markdown", label: "Copy Markdown", text: () => itemMarkdown(item), done: "Markdown copied." },
+              { id: "code", label: "Copy code", text: () => item.source, done: `${item.file} copied.` },
+            ]} />
           </div>
 
           <TabsContent value="preview" className="mt-3">
@@ -240,19 +238,6 @@ function Detail({ slug }: { slug: string }) {
         )}
       </div>
     </div>
-  );
-}
-
-function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <MetalButton type="button" variant="icon" size="icon" className="size-10" innerClassName="p-0" aria-label={label} onClick={onClick}>
-          {children}
-        </MetalButton>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
   );
 }
 

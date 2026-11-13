@@ -18,15 +18,11 @@ export async function copyText(text: string, done: string) {
 export function CodeView({ code, label, maxHeight = "32rem" }: { code: string; label: string; maxHeight?: string }) {
   const [copied, setCopied] = useState(false);
   const lines = useMemo(() => highlightLines(code.trimEnd()), [code]);
-  const extension = /\.(\w+)$/.exec(label)?.[1];
 
   return (
     <figure className="overflow-hidden rounded-[22px] bg-[hsl(var(--foreground)/0.04)]">
       <figcaption className="flex items-center justify-between gap-3 bg-foreground/[0.03] py-2 pl-4 pr-2 text-xs text-t2">
-        <span className="flex min-w-0 items-center gap-2">
-          {extension && <span className="rounded-md bg-[hsl(var(--syn-tag)/0.14)] px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-[hsl(var(--syn-tag))]" aria-hidden>{extension}</span>}
-          <span className="truncate font-mono">{label}</span>
-        </span>
+        <span className="truncate font-mono">{label}</span>
         <button
           type="button"
           aria-label={`Copy ${label}`}

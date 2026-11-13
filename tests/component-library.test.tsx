@@ -144,10 +144,15 @@ describe("component library page", () => {
     expect(within(nav).getByRole("link", { name: /Split Footer/ }).getAttribute("aria-current")).toBe("page");
 
     // userEvent provides the clipboard; read back exactly what was copied.
+    // One copy button: Markdown by default, code from its menu, which then becomes the default.
+    await user.click(screen.getByRole("button", { name: "Copy Markdown" }));
+    expect(await navigator.clipboard.readText()).toBe(itemMarkdown(footer));
+    await user.click(screen.getByRole("button", { name: "More copy options" }));
+    await user.click(screen.getByRole("menuitem", { name: "Copy code" }));
+    expect(await navigator.clipboard.readText()).toBe(footer.source);
+    expect(screen.queryByRole("menu")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Copy code" }));
     expect(await navigator.clipboard.readText()).toBe(footer.source);
-    await user.click(screen.getByRole("button", { name: "Copy as Markdown" }));
-    expect(await navigator.clipboard.readText()).toBe(itemMarkdown(footer));
 
     await user.click(screen.getByRole("tab", { name: "Code" }));
     expect(screen.getByLabelText("split-footer.tsx").textContent).toContain("export function SplitFooter");
