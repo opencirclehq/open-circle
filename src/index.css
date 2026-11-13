@@ -85,6 +85,18 @@ fades), recoloured from brand blue to white.
     --sidebar-accent-foreground: 214 45% 97%;
     --sidebar-border: 218 25% 12%;
     --sidebar-ring: 214 45% 97%;
+
+    /* Code syntax colours */
+    --syn-plain: 217 30% 85%;
+    --syn-punct: 218 16% 60%;
+    --syn-comment: 220 12% 48%;
+    --syn-keyword: 276 75% 78%;
+    --syn-string: 140 45% 70%;
+    --syn-number: 22 90% 70%;
+    --syn-tag: 199 90% 70%;
+    --syn-attr: 42 90% 70%;
+    --syn-fn: 217 92% 76%;
+    --syn-type: 172 60% 66%;
   }
 
   .light {
@@ -133,6 +145,17 @@ fades), recoloured from brand blue to white.
     --sidebar-accent-foreground: 220 30% 12%;
     --sidebar-border: 220 16% 86%;
     --sidebar-ring: 220 30% 12%;
+
+    --syn-plain: 220 30% 18%;
+    --syn-punct: 220 12% 45%;
+    --syn-comment: 220 10% 52%;
+    --syn-keyword: 276 60% 45%;
+    --syn-string: 145 60% 30%;
+    --syn-number: 18 80% 44%;
+    --syn-tag: 205 85% 38%;
+    --syn-attr: 32 85% 36%;
+    --syn-fn: 222 75% 48%;
+    --syn-type: 176 70% 30%;
   }
 }
 

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CheckReadIcon, CopyIcon } from "@solar-icons/react/linear";
 import { toast } from "sonner";
+import { highlightLines, TOKEN_CLASS } from "./highlight";
 
 export async function copyText(text: string, done: string) {
   try {
@@ -13,15 +14,19 @@ export async function copyText(text: string, done: string) {
   }
 }
 
-/** Source with line numbers, its file name and a copy button. Scrolls inside itself. */
+/** Highlighted source with line numbers, its file name and a copy button. Scrolls inside itself. */
 export function CodeView({ code, label, maxHeight = "32rem" }: { code: string; label: string; maxHeight?: string }) {
   const [copied, setCopied] = useState(false);
-  const lines = code.trimEnd().split("\n");
+  const lines = useMemo(() => highlightLines(code.trimEnd()), [code]);
+  const extension = /\.(\w+)$/.exec(label)?.[1];
 
   return (
     <figure className="overflow-hidden rounded-[22px] bg-[hsl(var(--foreground)/0.04)]">
-      <figcaption className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs text-t3">
-        <span className="truncate font-mono">{label}</span>
+      <figcaption className="flex items-center justify-between gap-3 bg-foreground/[0.03] py-2 pl-4 pr-2 text-xs text-t2">
+        <span className="flex min-w-0 items-center gap-2">
+          {extension && <span className="rounded-md bg-[hsl(var(--syn-tag)/0.14)] px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-[hsl(var(--syn-tag))]" aria-hidden>{extension}</span>}
+          <span className="truncate font-mono">{label}</span>
+        </span>
         <button
           type="button"
           aria-label={`Copy ${label}`}
@@ -31,12 +36,14 @@ export function CodeView({ code, label, maxHeight = "32rem" }: { code: string; l
           {copied ? <CheckReadIcon className="size-4" aria-hidden /> : <CopyIcon className="size-4" aria-hidden />}
         </button>
       </figcaption>
-      <pre className="overflow-auto px-4 pb-4 text-[12.5px] leading-[1.7]" style={{ maxHeight }} tabIndex={0} aria-label={label}>
+      <pre className="overflow-auto px-4 py-4 text-[12.5px] leading-[1.7]" style={{ maxHeight }} tabIndex={0} aria-label={label}>
         <code className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 font-mono">
-          {lines.map((line, index) => (
+          {lines.map((tokens, index) => (
             <span key={index} className="contents">
               <span className="select-none text-right tabular text-t4" aria-hidden>{index + 1}</span>
-              <span className="whitespace-pre text-t2">{line || " "}</span>
+              <span className="whitespace-pre">
+                {tokens.length ? tokens.map((token, at) => <span key={at} className={TOKEN_CLASS[token.kind]}>{token.text}</span>) : " "}
+              </span>
             </span>
           ))}
         </code>

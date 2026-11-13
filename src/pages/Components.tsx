@@ -18,8 +18,8 @@ import { findItem, itemMarkdown, LIBRARY, searchLibrary, type CanvasTheme, type 
 import { cn } from "@/lib/utils";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 34 } as const;
-/** Grey cards that hold the grid's shape until more components arrive. */
-const PLACEHOLDERS = 4;
+/** Grey cards that hold the grid's shape until more components arrive. Phones skip them. */
+const PLACEHOLDERS = 2;
 
 export default function Components() {
   usePageMeta();
@@ -29,7 +29,8 @@ export default function Components() {
       <div className="app-backdrop" aria-hidden />
       <AccountCorner />
       <TooltipProvider delayDuration={200}>
-        <main className="relative z-10 mx-auto w-full min-w-0 max-w-6xl px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-28">
+        {/* The preview page runs wider so full-width components like the footer have room. */}
+        <main className={cn("relative z-10 mx-auto w-full min-w-0 px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6 sm:pt-28", slug ? "max-w-[100rem] lg:px-8" : "max-w-6xl")}>
           {slug ? <Detail slug={slug} /> : <Library />}
         </main>
       </TooltipProvider>
@@ -78,7 +79,7 @@ function Library() {
               </motion.li>
             ))}
             {!searching && Array.from({ length: PLACEHOLDERS }, (_, index) => (
-              <li key={`placeholder-${index}`} aria-hidden className="flex flex-col justify-end rounded-[28px] bg-foreground/[0.025] p-5">
+              <li key={`placeholder-${index}`} aria-hidden className="hidden flex-col justify-end rounded-[28px] bg-foreground/[0.025] p-5 sm:flex">
                 <span className="mb-auto flex size-10 items-center justify-center rounded-2xl bg-foreground/[0.04] text-t4"><Widget4Icon className="size-5" /></span>
                 <span className="h-2.5 w-24 rounded-full bg-foreground/[0.06]" />
                 <span className="mt-2 h-2 w-36 rounded-full bg-foreground/[0.04]" />
@@ -104,7 +105,8 @@ function Library() {
 function ComponentCard({ item }: { item: LibraryItem }) {
   const wide = item.card === "wide";
   return (
-    <Link to={`/components/${item.slug}`} className="surface group flex h-full flex-col rounded-[28px] p-2 transition-transform duration-300 hover:-translate-y-0.5" aria-label={`${item.name}: ${item.description}`}>
+    // The link stretches over the card from the title, so the demo's own links never sit inside it.
+    <article className="surface group relative flex h-full flex-col rounded-[28px] p-2 transition-transform duration-300 focus-within:-translate-y-0.5 hover:-translate-y-0.5">
       {/* The preview sits inset and rounded; its tags float in the top-right corner. */}
       <div className={cn("relative overflow-hidden rounded-[22px] bg-[#0b0d12]", wide ? "h-56 sm:h-72 lg:h-[22rem]" : "h-64 lg:h-[22rem]")}>
         {wide
@@ -117,10 +119,16 @@ function ComponentCard({ item }: { item: LibraryItem }) {
         </div>
       </div>
       <div className="px-3 pb-3 pt-4">
-        <p className="truncate font-medium tracking-tight">{item.name}</p>
+        <Link
+          to={`/components/${item.slug}`}
+          aria-label={`${item.name}: ${item.description}`}
+          className="block truncate font-medium tracking-tight [outline-style:none] after:absolute after:inset-0 after:z-10 after:rounded-[28px] focus-visible:after:ring-2 focus-visible:after:ring-foreground/40"
+        >
+          {item.name}
+        </Link>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-t3">{item.description}</p>
       </div>
-    </Link>
+    </article>
   );
 }
 
@@ -153,11 +161,11 @@ function Detail({ slug }: { slug: string }) {
   const next = LIBRARY[index + 1];
 
   return (
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_13rem] lg:gap-10">
-      {/* First in the page so phones get the chip row on top; on wide screens it sits on the right. */}
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+      {/* Wide screens only: phones move between components with the links at the bottom. */}
       <ComponentNav current={item.slug} />
 
-      <div className="min-w-0 space-y-5 lg:order-first">
+      <div className="min-w-0 space-y-5">
         <div className="space-y-2">
           <Link to="/components" className="inline-flex min-h-9 items-center gap-1 text-sm text-t3 hover:text-foreground lg:hidden">
             <AltArrowLeftIcon className="size-4" aria-hidden />All components
@@ -220,9 +228,6 @@ function Detail({ slug }: { slug: string }) {
           <TabsContent value="code" className="mt-3 space-y-4">
             <CodeView code={item.usage} label="Usage" maxHeight="16rem" />
             <CodeView code={item.source} label={item.file} />
-            <p className="text-xs text-t4">
-              Needs React and Tailwind CSS{item.dependencies.length ? ` plus ${item.dependencies.join(", ")}` : ", nothing else"}.{item.credit ? ` ${item.credit}` : ""}
-            </p>
           </TabsContent>
         </Tabs>
 
@@ -250,26 +255,26 @@ function IconAction({ label, onClick, children }: { label: string; onClick: () =
   );
 }
 
-/** Every component, for scrolling between them: a sticky column on wide screens, a swipeable row on phones. */
+/** Every component in a sticky column at the far left, for scrolling between them on wide screens. */
 function ComponentNav({ current }: { current: string }) {
   return (
-    <aside aria-label="Components" className="min-w-0 lg:sticky lg:top-24 lg:order-last lg:self-start">
-      <Link to="/components" className="mb-3 hidden items-center gap-1 text-sm text-t3 hover:text-foreground lg:inline-flex">
+    <aside aria-label="Components" className="hidden min-w-0 lg:sticky lg:top-24 lg:block lg:self-start">
+      <Link to="/components" className="mb-3 inline-flex items-center gap-1 text-sm text-t3 hover:text-foreground">
         <AltArrowLeftIcon className="size-4" aria-hidden />All components
       </Link>
-      <ul className="-mx-4 flex snap-x gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:max-h-[calc(100dvh-10rem)] lg:flex-col lg:overflow-y-auto lg:overflow-x-visible lg:px-0">
+      <ul className="flex max-h-[calc(100dvh-10rem)] flex-col gap-1.5 overflow-y-auto">
         {LIBRARY.map((item) => {
           const active = item.slug === current;
           return (
-            <li key={item.slug} className="shrink-0 snap-start">
+            <li key={item.slug}>
               <Link
                 to={`/components/${item.slug}`}
                 aria-current={active ? "page" : undefined}
-                className={cn("relative flex min-h-10 items-center gap-2.5 whitespace-nowrap rounded-full px-3.5 text-sm transition-colors lg:rounded-2xl", active ? "text-foreground" : "text-t3 hover:text-foreground")}
+                className={cn("relative flex min-h-10 items-center justify-between gap-2.5 rounded-2xl px-3.5 text-sm transition-colors", active ? "text-foreground" : "text-t3 hover:text-foreground")}
               >
                 {active && <motion.span layoutId="library-nav-pill" className="absolute inset-0 rounded-[inherit] bg-foreground/[0.08]" transition={SPRING} />}
                 <span className="relative">{item.name}</span>
-                <span className="relative hidden text-[11px] text-t4 lg:inline">{item.category}</span>
+                <span className="relative text-[11px] text-t4">{item.category}</span>
               </Link>
             </li>
           );
