@@ -37,6 +37,9 @@ The frontend calls same-origin API routes. Vite serves these during development;
 | `GET /api/blog-admin?id=ID` | Approved admin session. | One post with its history. |
 | `POST /api/blog-admin` | Admin session, same-origin JSON and `X-OpenCircle-Admin: 1`. `{ "action": "review", "decision": "approve" \| "changes" \| "reject", "reason" }` or `{ "action": "moderate", "operation": "hide" \| "restore" \| "feature" \| "unfeature", "reason" }`, each with `requestId`, `id` and `version`. | The updated post. Requesting changes and declining need a reason of at least 5 characters; hiding needs at least 3. |
 | `GET /api/blog-image?slug=SLUG` | None. | A 1200×630 PNG share card for a published post. |
+| `GET /api/component-image?slug=SLUG` | None. | A 1200×630 PNG share card for a library component. |
+| `GET /api/page-image?path=PATH` | None. | A 1200×630 PNG share card for an indexed page such as `/tools`. |
+| `GET /api/home-image` | None. | A 1200×630 PNG of the current top three on the leaderboard. |
 
 Admin actions are `hide`, `unhide` and `remove`, with a `login`, or `config`, with complete invite and weight settings. The exact request and response types live in [`shared/types.ts`](../shared/types.ts).
 

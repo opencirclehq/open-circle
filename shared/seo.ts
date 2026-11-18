@@ -1,5 +1,6 @@
 import { BRAND_NAME, DEFAULT_SITE_URL } from "./brand";
 import { blogSlugFromPath } from "./blog-paths";
+import { shareImageVersion } from "./share-image";
 
 export const GITHUB_URL = "https://github.com/opencirclehq/open-circle";
 export const X_URL = "https://x.com/_Cybersmith";
@@ -152,6 +153,14 @@ export function pageFor(pathname: string) {
   return byPath.get(path.startsWith("/community/") ? "/community" : path);
 }
 
+/** The page's own name, without the site suffix, as shown on its share card. */
+export const pageName = (page: Pick<SeoPage, "title">) => page.title.split(" · ")[0];
+
+function pageImage(origin: string, path: string, name: string, description: string) {
+  const query = new URLSearchParams({ path, v: shareImageVersion(name, description) });
+  return { url: `${origin}/api/page-image?${query}`, alt: `${name} on ${BRAND_NAME}`, contentType: "image/png", width: 1200, height: 630 };
+}
+
 export function seoDocument(pathname: string, originInput = DEFAULT_SITE_URL): SeoDocument {
   const origin = siteOrigin(originInput);
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname || "/";
@@ -161,8 +170,11 @@ export function seoDocument(pathname: string, originInput = DEFAULT_SITE_URL): S
         : blogSlugFromPath(path) ? { ...byPath.get("/blog")!, path }
           : /^\/components\/[a-z0-9-]+$/.test(path) ? { ...byPath.get("/components")!, path } : NOT_FOUND);
   const canonicalPath = path.startsWith("/community/") ? path : page.path || (path.startsWith("/") ? path : "/");
+  const name = pageName(page);
+  const card = path !== "/" && page.index && byPath.get(path) === page;
   return {
     ...page,
+    ...(card && { image: pageImage(origin, path, name, page.description) }),
     path: canonicalPath,
     status: page.path ? 200 : 404,
     robots: page.index ? "index, follow, max-image-preview:large" : "noindex, nofollow",
@@ -214,7 +226,7 @@ export function structuredData(originInput = DEFAULT_SITE_URL) {
 
 export function robotsTxt(originInput = DEFAULT_SITE_URL) {
   const origin = siteOrigin(originInput);
-  return ["User-agent: *", "Allow: /", "Allow: /api/event-cover", "Allow: /api/forum-image", "Allow: /api/blog-image", "Disallow: /admin", "Disallow: /portfolio", "Disallow: /api/", "", `Sitemap: ${origin}/sitemap.xml`, ""].join("\n");
+  return ["User-agent: *", "Allow: /", "Allow: /api/event-cover", "Allow: /api/forum-image", "Allow: /api/blog-image", "Allow: /api/component-image", "Allow: /api/home-image", "Allow: /api/page-image", "Disallow: /admin", "Disallow: /portfolio", "Disallow: /api/", "", `Sitemap: ${origin}/sitemap.xml`, ""].join("\n");
 }
 
 /** Static pages, plus dynamic entries (published posts) when the server knows them. */
