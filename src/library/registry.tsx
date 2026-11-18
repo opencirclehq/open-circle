@@ -131,9 +131,9 @@ export const LIBRARY: LibraryItem[] = [
   {
     slug: "draw-a-line",
     name: "Draw a Line",
-    description: "Move across the card to lay track. A little train follows it, puffing your app icons out as it goes, and it all fades once you stop.",
+    description: "A toy train set on a tilted table. Move across it to lay track; the train follows, climbs a bridge wherever you cross your own line and puffs your app icons onto the table. It all fades once you stop.",
     category: "Motion",
-    tags: ["train", "cursor", "canvas", "interactive"],
+    tags: ["train", "2.5d", "canvas", "interactive"],
     file: "draw-a-line.tsx",
     source: drawALineSource,
     dependencies: [],
