@@ -8,7 +8,7 @@ import type { ForumSharePreview } from "../shared/forum-seo.js";
 const images = new Map<string, Promise<Buffer>>();
 let fonts: Promise<Buffer[]> | undefined;
 let logo: Promise<string> | undefined;
-const text = (value: string, style: CSSProperties) => h("div", { style }, value);
+export const text = (value: string, style: CSSProperties) => h("div", { style }, value);
 
 /** The text on a 1200×630 link-preview card. */
 export interface ShareCard { label: string; title: string; description: string; author: string; category: string }

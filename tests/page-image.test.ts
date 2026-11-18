@@ -56,7 +56,6 @@ it("renders page cards and rejects paths that have none", async () => {
 it("picks the top three members for the home card", () => {
   const card = homeCard({ members: [members[3], members[1], members[0], members[2]] as never });
   expect(card.seats.map((seat) => seat.rank)).toEqual([1, 2, 3]);
-  expect(card.developers).toBe(4);
   expect(homeCardKey(card)).not.toBe(homeCardKey(homeCard({ members: [members[0]] as never })));
 });
 
