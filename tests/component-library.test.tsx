@@ -168,6 +168,26 @@ describe("component library page", () => {
     expect(findItem("draw-a-line")!.source).toContain("export function DrawALine");
   });
 
+  it("shows Scroll Deck with its cards and both headlines", () => {
+    expect(searchLibrary("scroll").map((item) => item.slug)).toContain("scroll-deck");
+    mount("/components/scroll-deck");
+    expect(screen.getByRole("heading", { level: 1, name: "Scroll Deck" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "We build apps." })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: /real problem.*actually use\./ })).toBeTruthy();
+    expect(screen.getAllByText("Harbor").length).toBeGreaterThan(0);
+  });
+
+  it("opens a component full screen and closes it with Escape", async () => {
+    const user = userEvent.setup();
+    mount("/components/scroll-deck");
+    await user.click(screen.getByRole("button", { name: "Full screen" }));
+    const dialog = screen.getByRole("dialog", { name: "Scroll Deck, full screen" });
+    expect(within(dialog).getByRole("heading", { level: 2, name: "We build apps." })).toBeTruthy();
+    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Close full screen" }));
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Scroll Deck, full screen" })).toBeNull();
+  });
+
   it("explains a missing component", () => {
     mount("/components/does-not-exist");
     expect(screen.getByText("This component isn't here")).toBeTruthy();

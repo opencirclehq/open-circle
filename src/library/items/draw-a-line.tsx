@@ -193,6 +193,12 @@ export function DrawALine({
     let spin = 0;
     let flyerCount = 0;
     const leans = CARS.map(() => 0);
+    // Coupling slack: each wagon rides on a spring against the engine's acceleration.
+    // Braking bunches the wagons up, then they spring back and stretch out.
+    const slack = CARS.map(() => 0);
+    const slackSpeed = CARS.map(() => 0);
+    let lastSpeed = 0;
+    let accel = 0;
     let previous = 0;
     let frame = 0;
     let visible = true;
@@ -542,8 +548,32 @@ export function DrawALine({
 
         // The train: shadows on the table now, bodies sorted with everything else.
         CARS.forEach((car, index) => {
-          const d = s - car.back;
+          const d = s - car.back + slack[index];
           if (d - car.length / 2 < first) return;
+          if (index > 0) {
+            // The coupling bar between this wagon and the car ahead shows the slack.
+            const ahead = CARS[index - 1];
+            const front = d + car.length / 2 - 1;
+            const rear = s - ahead.back + slack[index - 1] - ahead.length / 2 + 1;
+            const a = at(points, front);
+            const b = at(points, rear);
+            const za = elevation(front, now) + RAIL + 6.5;
+            const zb = elevation(rear, now) + RAIL + 6.5;
+            drawables.push({
+              key: -(a.y + b.y) / 2 + Math.max(za, zb) * 1.2 + 0.4,
+              run: () => {
+                const from = project(a.x, a.y, za);
+                const to = project(b.x, b.y, zb);
+                ctx.globalAlpha = fade;
+                ctx.strokeStyle = palette.steel;
+                ctx.lineWidth = 2.4 * from.scale;
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.stroke();
+              },
+            });
+          }
           const p = at(points, d);
           const angle = headingAt(points, d);
           const f = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -615,13 +645,26 @@ export function DrawALine({
         const goal = Math.max(0, points[points.length - 1].d - LEAD);
         const wanted = Math.min(520, Math.max(0, (goal - s) * 2.6));
         speed += (wanted - speed) * (1 - Math.exp(-dt * 4));
+        if (dt > 0) {
+          accel += ((speed - lastSpeed) / dt - accel) * (1 - Math.exp(-dt * 10));
+          lastSpeed = speed;
+          // Inertia pushes the wagons forward when braking (positive slack closes the gap), back when pulling away.
+          for (let index = 1; index < CARS.length; index++) {
+            const push = still ? 0 : -accel * 0.7 * (index === 1 ? 1 : 1.6);
+            slackSpeed[index] += (push - 120 * slack[index] - 11 * slackSpeed[index]) * dt;
+            slack[index] += slackSpeed[index] * dt;
+          }
+          // Keep the cars from overlapping: the gaps are about 7 units at rest.
+          slack[1] = clamp(slack[1], -8, 6);
+          slack[2] = clamp(slack[2], -16, slack[1] + 5);
+        }
         s = Math.min(goal, s + speed * dt);
         spin += (speed * dt) / 4.2;
         travelled += speed * dt;
 
         // Cars lean out of curves in proportion to speed.
         CARS.forEach((car, index) => {
-          const d = s - car.back;
+          const d = s - car.back + slack[index];
           let turn = headingAt(points, d + 12) - headingAt(points, d - 12);
           turn = Math.atan2(Math.sin(turn), Math.cos(turn)) / 24;
           const target = still ? 0 : clamp(-turn * speed * 0.04, -0.22, 0.22);
@@ -662,7 +705,11 @@ export function DrawALine({
         // Nobody drawing and the train at rest: fade the scene away, then start clean.
         if (!drawing && speed < 8) {
           fade = Math.max(0, fade - dt / FADE_S);
-          if (fade === 0) { points = []; bridges = []; head = null; s = 0; speed = 0; travelled = 0; }
+          if (fade === 0) {
+            points = []; bridges = []; head = null; s = 0; speed = 0; lastSpeed = 0; accel = 0; travelled = 0;
+            slack.fill(0);
+            slackSpeed.fill(0);
+          }
         }
       }
 

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Widget4Icon } from "@solar-icons/react/bold-duotone";
-import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, MagnifierIcon, MoonIcon, RestartIcon, Sun2Icon } from "@solar-icons/react/linear";
+import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, CloseCircleIcon, FullScreenIcon, MagnifierIcon, MoonIcon, RestartIcon, Sun2Icon } from "@solar-icons/react/linear";
 import { AccountCorner } from "@/components/account-corner";
 import { Dock } from "@/components/dock";
 import { CodeView } from "@/components/library/code-view";
@@ -18,13 +19,19 @@ import { findItem, itemMarkdown, LIBRARY, searchLibrary, type CanvasTheme, type 
 import { cn } from "@/lib/utils";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 34 } as const;
-/**
- * Grey cards that complete the grid's last row on wide screens, beside the
- * Submit card. Wide cards take 2×2 cells and tall ones 1×2 in the 3-column grid.
- * Phones skip them.
- */
-const CELLS = LIBRARY.reduce((sum, item) => sum + (item.card === "wide" ? 4 : 2), 0);
-const PLACEHOLDERS = (3 - ((CELLS + 1) % 3)) % 3;
+/** Bento shapes on the 4-column grid (2 columns on tablets, stacked on phones). */
+const SHAPE: Record<LibraryItem["card"], string> = {
+  big: "sm:col-span-2 sm:row-span-2",
+  wide: "sm:col-span-2",
+  tall: "sm:row-span-2",
+};
+const CELLS: Record<LibraryItem["card"], number> = { big: 4, wide: 2, tall: 2 };
+/** Grey 1×1 cards that, with the Submit card, fill the last rows of the wide-screen bento. */
+const PLACEHOLDERS = (4 - ((LIBRARY.reduce((sum, item) => sum + CELLS[item.card], 0) + 1) % 4)) % 4;
+const canvasBackground = (canvas: CanvasTheme) => ({
+  backgroundImage: `radial-gradient(${canvas === "dark" ? "rgba(255,255,255,.06)" : "rgba(15,23,42,.08)"} 1px, transparent 1px)`,
+  backgroundSize: "18px 18px",
+});
 
 export default function Components() {
   usePageMeta();
@@ -72,24 +79,24 @@ function Library() {
           <MetalButton type="button" className="h-11 w-auto" innerClassName="px-5" onClick={() => setSubmitting(true)}>Submit a component</MetalButton>
         </EmptyState>
       ) : (
-        <ul aria-label="Components" className="grid auto-rows-[minmax(14rem,auto)] grid-cols-1 gap-3 sm:grid-cols-2 sm:grid-flow-row-dense lg:grid-cols-3">
+        <ul aria-label="Components" className="grid grid-flow-row-dense auto-rows-[16rem] grid-cols-1 gap-3 sm:auto-rows-[12.5rem] sm:grid-cols-2 lg:grid-cols-4">
           <AnimatePresence initial={false}>
             {results.map((item) => (
               <motion.li key={item.slug} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={SPRING}
-                className={cn(item.card === "wide" ? "sm:col-span-2 lg:row-span-2" : "lg:row-span-2")}>
+                className={SHAPE[item.card]}>
                 <ComponentCard item={item} />
               </motion.li>
             ))}
             {!searching && Array.from({ length: PLACEHOLDERS }, (_, index) => (
-              <li key={`placeholder-${index}`} aria-hidden className="hidden flex-col justify-end rounded-[28px] bg-foreground/[0.025] p-5 sm:flex">
+              <li key={`placeholder-${index}`} aria-hidden className="hidden flex-col justify-end rounded-[28px] bg-foreground/[0.025] p-5 lg:flex">
                 <span className="mb-auto flex size-10 items-center justify-center rounded-2xl bg-foreground/[0.04] text-t4"><Widget4Icon className="size-5" /></span>
                 <span className="h-2.5 w-24 rounded-full bg-foreground/[0.06]" />
                 <span className="mt-2 h-2 w-36 rounded-full bg-foreground/[0.04]" />
               </li>
             ))}
             {!searching && (
-              <li>
-                <button type="button" onClick={() => setSubmitting(true)} className="group flex h-full min-h-[14rem] w-full flex-col items-center justify-center gap-3 rounded-[28px] bg-foreground/[0.025] p-5 text-center transition-colors hover:bg-foreground/[0.05]">
+              <li className="sm:row-span-2 lg:row-span-1">
+                <button type="button" onClick={() => setSubmitting(true)} className="group flex h-full w-full flex-col items-center justify-center gap-3 rounded-[28px] bg-foreground/[0.025] p-5 text-center transition-colors hover:bg-foreground/[0.05]">
                   <span className="flex size-12 items-center justify-center rounded-full bg-foreground/[0.06] text-t2 transition-transform group-hover:scale-105"><AddIcon className="size-5" aria-hidden /></span>
                   <span className="text-sm font-medium">Submit yours</span>
                   <span className="max-w-[16rem] text-xs text-t3">Share a component with the circle.</span>
@@ -105,15 +112,15 @@ function Library() {
 }
 
 function ComponentCard({ item }: { item: LibraryItem }) {
-  const wide = item.card === "wide";
+  const thumb = item.thumbWidth ?? item.designWidth;
   return (
     // The link stretches over the card from the title, so the demo's own links never sit inside it.
     <article className="surface group relative flex h-full flex-col rounded-[28px] p-2 transition-transform duration-300 focus-within:-translate-y-0.5 hover:-translate-y-0.5">
       {/* The preview sits inset and rounded; its tags float in the top-right corner. */}
       {/* The preview grows to fill the card, leaving only the name beneath it. */}
-      <div className={cn("relative flex-1 overflow-hidden rounded-[22px] bg-[#0b0d12]", wide ? "min-h-56 sm:min-h-72" : "min-h-64")}>
-        {wide
-          ? <ScaledPreview width={item.designWidth ?? 1120} className="!absolute inset-0"><item.Demo theme="dark" /></ScaledPreview>
+      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[22px] bg-[#0b0d12]">
+        {thumb
+          ? <ScaledPreview width={thumb} className="!absolute inset-0"><item.Demo theme="dark" /></ScaledPreview>
           : <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden inert><item.Demo theme="dark" /></div>}
         <div className="absolute right-3 top-3 flex max-w-[70%] flex-wrap justify-end gap-1">
           {[item.category, ...item.tags.slice(0, 2)].map((tag) => (
@@ -141,8 +148,9 @@ function Detail({ slug }: { slug: string }) {
   const [tab, setTab] = useState("preview");
   const [canvas, setCanvas] = useState<CanvasTheme>("dark");
   const [run, setRun] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
 
-  useEffect(() => { setTab("preview"); setRun(0); }, [slug]);
+  useEffect(() => { setTab("preview"); setRun(0); setFullscreen(false); }, [slug]);
   useEffect(() => {
     if (!item) return;
     const previous = document.title;
@@ -197,37 +205,26 @@ function Detail({ slug }: { slug: string }) {
           <TabsContent value="preview" className="mt-3">
             <div
               className={cn("relative overflow-x-auto rounded-[28px] p-2 transition-colors duration-300 sm:p-4", canvas === "dark" ? "bg-[#0b0d12]" : "bg-[#f3f5f9]")}
-              style={{ backgroundImage: `radial-gradient(${canvas === "dark" ? "rgba(255,255,255,.06)" : "rgba(15,23,42,.08)"} 1px, transparent 1px)`, backgroundSize: "18px 18px" }}
+              style={canvasBackground(canvas)}
             >
-              <div
-                role="toolbar"
-                aria-label="Preview controls"
-                className={cn("absolute right-3 top-3 z-20 flex items-center gap-0.5 rounded-full p-1 backdrop-blur-md", canvas === "dark" ? "bg-white/[0.08] text-white/70" : "bg-black/[0.06] text-slate-600")}
-              >
-                <button type="button" aria-label={canvas === "dark" ? "Light canvas" : "Dark canvas"} title={canvas === "dark" ? "Light canvas" : "Dark canvas"} onClick={() => setCanvas(canvas === "dark" ? "light" : "dark")}
-                  className={cn("flex size-8 items-center justify-center rounded-full transition-colors", canvas === "dark" ? "hover:bg-white/10 hover:text-white" : "hover:bg-black/[0.06] hover:text-slate-900")}>
-                  {canvas === "dark" ? <Sun2Icon className="size-4" aria-hidden /> : <MoonIcon className="size-4" aria-hidden />}
-                </button>
-                <button type="button" aria-label="Replay" title="Replay" onClick={() => setRun((value) => value + 1)}
-                  className={cn("flex size-8 items-center justify-center rounded-full transition-colors", canvas === "dark" ? "hover:bg-white/10 hover:text-white" : "hover:bg-black/[0.06] hover:text-slate-900")}>
-                  <RestartIcon className="size-4" aria-hidden />
-                </button>
-              </div>
+              <PreviewControls canvas={canvas} onCanvas={setCanvas} onReplay={() => setRun((value) => value + 1)} onExpand={() => setFullscreen(true)} className="absolute right-3 top-3" />
               <motion.div
                 key={`${item.slug}-${run}`}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={SPRING}
-                className="flex min-h-[22rem] w-full items-center justify-center pt-10 sm:pt-6"
+                className={cn("flex min-h-[22rem] w-full items-center justify-center", !item.designHeight && "pt-10 sm:pt-6")}
                 data-testid="preview-stage"
               >
                 {/* Full-width components keep their real layout and scale down to the canvas. */}
                 {item.designWidth
-                  ? <ScaledPreview width={item.designWidth} interactive className="w-full"><item.Demo theme={canvas} /></ScaledPreview>
+                  ? <ScaledPreview width={item.designWidth} height={item.designHeight} interactive className={cn("w-full", item.designHeight && "overflow-hidden rounded-[20px]")}><item.Demo theme={canvas} /></ScaledPreview>
                   : <div className="w-full"><item.Demo theme={canvas} /></div>}
               </motion.div>
             </div>
           </TabsContent>
+
+          {fullscreen && <FullscreenPreview item={item} canvas={canvas} onCanvas={setCanvas} onClose={() => setFullscreen(false)} />}
 
           <TabsContent value="code" className="mt-3 space-y-4">
             <CodeView code={item.usage} label="Usage" maxHeight="16rem" />
@@ -243,6 +240,74 @@ function Detail({ slug }: { slug: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Canvas theme, replay, and full screen (or close, inside full screen), floating over the canvas. */
+function PreviewControls({ canvas, onCanvas, onReplay, onExpand, onClose, closeRef, className }: {
+  canvas: CanvasTheme;
+  onCanvas: (canvas: CanvasTheme) => void;
+  onReplay: () => void;
+  onExpand?: () => void;
+  onClose?: () => void;
+  closeRef?: RefObject<HTMLButtonElement | null>;
+  className?: string;
+}) {
+  const button = cn("flex size-8 items-center justify-center rounded-full transition-colors", canvas === "dark" ? "hover:bg-white/10 hover:text-white" : "hover:bg-black/[0.06] hover:text-slate-900");
+  return (
+    <div role="toolbar" aria-label="Preview controls" className={cn("z-20 flex items-center gap-0.5 rounded-full p-1 backdrop-blur-md", canvas === "dark" ? "bg-white/[0.08] text-white/70" : "bg-black/[0.06] text-slate-600", className)}>
+      <button type="button" aria-label={canvas === "dark" ? "Light canvas" : "Dark canvas"} title={canvas === "dark" ? "Light canvas" : "Dark canvas"} onClick={() => onCanvas(canvas === "dark" ? "light" : "dark")} className={button}>
+        {canvas === "dark" ? <Sun2Icon className="size-4" aria-hidden /> : <MoonIcon className="size-4" aria-hidden />}
+      </button>
+      <button type="button" aria-label="Replay" title="Replay" onClick={onReplay} className={button}>
+        <RestartIcon className="size-4" aria-hidden />
+      </button>
+      {onExpand && (
+        <button type="button" aria-label="Full screen" title="Full screen" onClick={onExpand} className={button}>
+          <FullScreenIcon className="size-4" aria-hidden />
+        </button>
+      )}
+      {onClose && (
+        <button ref={closeRef} type="button" aria-label="Close full screen" title="Close (Esc)" onClick={onClose} className={button}>
+          <CloseCircleIcon className="size-4" aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** The component on its own, filling the screen. Esc or the close button returns to the page. */
+function FullscreenPreview({ item, canvas, onCanvas, onClose }: { item: LibraryItem; canvas: CanvasTheme; onCanvas: (canvas: CanvasTheme) => void; onClose: () => void }) {
+  const [run, setRun] = useState(0);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const close = useRef(onClose);
+  useEffect(() => { close.current = onClose; });
+
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeRef.current?.focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") close.current(); };
+    document.addEventListener("keydown", key);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", key);
+      opener?.focus();
+    };
+  }, []);
+
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={`${item.name}, full screen`} className={cn("fixed inset-0 z-[100] flex", canvas === "dark" ? "bg-[#0b0d12]" : "bg-[#f3f5f9]")} style={canvasBackground(canvas)}>
+      <PreviewControls canvas={canvas} onCanvas={onCanvas} onReplay={() => setRun((value) => value + 1)} onClose={onClose} closeRef={closeRef} className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top))]" />
+      <div key={run} className="flex h-full w-full items-center justify-center overflow-auto">
+        {/* A whole-screen design (a hero) takes the real screen here; full-width pieces still scale to fit. */}
+        {item.designWidth && !item.designHeight
+          ? <ScaledPreview width={item.designWidth} interactive className="w-full"><item.Demo theme={canvas} fullscreen /></ScaledPreview>
+          : <item.Demo theme={canvas} fullscreen />}
+      </div>
+    </div>,
+    document.body,
   );
 }
 
