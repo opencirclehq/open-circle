@@ -18,8 +18,13 @@ import { findItem, itemMarkdown, LIBRARY, searchLibrary, type CanvasTheme, type 
 import { cn } from "@/lib/utils";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 34 } as const;
-/** Grey cards that hold the grid's shape until more components arrive. Phones skip them. */
-const PLACEHOLDERS = 2;
+/**
+ * Grey cards that complete the grid's last row on wide screens, beside the
+ * Submit card. Wide cards take 2×2 cells and tall ones 1×2 in the 3-column grid.
+ * Phones skip them.
+ */
+const CELLS = LIBRARY.reduce((sum, item) => sum + (item.card === "wide" ? 4 : 2), 0);
+const PLACEHOLDERS = (3 - ((CELLS + 1) % 3)) % 3;
 
 export default function Components() {
   usePageMeta();
@@ -67,7 +72,7 @@ function Library() {
           <MetalButton type="button" className="h-11 w-auto" innerClassName="px-5" onClick={() => setSubmitting(true)}>Submit a component</MetalButton>
         </EmptyState>
       ) : (
-        <ul aria-label="Components" className="grid auto-rows-[minmax(14rem,auto)] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul aria-label="Components" className="grid auto-rows-[minmax(14rem,auto)] grid-cols-1 gap-3 sm:grid-cols-2 sm:grid-flow-row-dense lg:grid-cols-3">
           <AnimatePresence initial={false}>
             {results.map((item) => (
               <motion.li key={item.slug} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={SPRING}

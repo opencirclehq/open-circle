@@ -160,6 +160,14 @@ describe("component library page", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Icon Folder" })).toBeTruthy();
   });
 
+  it("shows Draw a Line on its own page and finds it by search", async () => {
+    expect(searchLibrary("train").map((item) => item.slug)).toEqual(["draw-a-line"]);
+    mount("/components/draw-a-line");
+    expect(screen.getByRole("heading", { level: 1, name: "Draw a Line" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Draw a line." })).toBeTruthy();
+    expect(findItem("draw-a-line")!.source).toContain("export function DrawALine");
+  });
+
   it("explains a missing component", () => {
     mount("/components/does-not-exist");
     expect(screen.getByText("This component isn't here")).toBeTruthy();
