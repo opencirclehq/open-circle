@@ -4,6 +4,9 @@ import { DEFAULT_SITE_URL } from "@shared/brand";
 import { seoDocument, type SeoDocument } from "@shared/seo";
 import { forumPreviewId, forumSeoDocument, type ForumSharePreview } from "@shared/forum-seo";
 import { blogSlugFromPath } from "@shared/blog-paths";
+import { componentMeta, componentSlugFromPath } from "@shared/component-meta";
+import { componentSeoDocument } from "@shared/component-seo";
+import { PODIUM_PATHS, podiumImage } from "@shared/podium-seo";
 
 /** The site's own origin. og:url always points here, unlike a cross-posted article's canonical link. */
 export function currentOrigin() {
@@ -28,10 +31,15 @@ export function usePageMeta() {
     const origin = currentOrigin();
     const id = forumPreviewId(pathname);
     // Posts set their own tags once loaded, like events and community threads.
-    const dynamic = !!id || /^\/events\/[a-z0-9-]+$/.test(pathname) || !!blogSlugFromPath(pathname);
+    const dynamic = !!id || /^\/events\/[a-z0-9-]+$/.test(pathname) || !!blogSlugFromPath(pathname) || PODIUM_PATHS.has(pathname);
     // og:url names this page even when a cross-posted article's canonical link points elsewhere.
     const shared = document.querySelector('meta[property="og:url"]')?.getAttribute("content") ?? document.querySelector('link[rel="canonical"]')?.getAttribute("href");
-    if (!dynamic || !shared || !URL.canParse(shared) || new URL(shared).pathname !== pathname) applyPageMeta(seoDocument(pathname, origin));
+    const component = componentMeta(componentSlugFromPath(pathname) ?? undefined);
+    if (component) applyPageMeta(componentSeoDocument(component, origin));
+    else if (!dynamic || !shared || !URL.canParse(shared) || new URL(shared).pathname !== pathname) {
+      const page = seoDocument(pathname, origin);
+      applyPageMeta(PODIUM_PATHS.has(pathname) ? { ...page, image: podiumImage(origin) } : page);
+    }
     if (!id) return;
     const controller = new AbortController();
     void fetch(`/api/forum-preview?${new URLSearchParams({ id })}`, { signal: controller.signal, credentials: "omit", cache: "no-store" })
