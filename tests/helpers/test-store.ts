@@ -31,6 +31,12 @@ export class TestStore implements Store {
     if (member) this.members.set(login, { ...member, ...structuredClone(patch) });
   }
 
+  async mergeAchievements(login: string, awards: Record<string, number>): Promise<void> {
+    const member = this.members.get(login);
+    if (!member || Object.keys(awards).length === 0) return;
+    this.members.set(login, { ...member, achievements: { ...awards, ...(member.achievements ?? {}) } });
+  }
+
   async deleteMember(login: string): Promise<void> {
     this.members.delete(login);
   }

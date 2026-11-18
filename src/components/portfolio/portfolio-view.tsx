@@ -5,6 +5,8 @@ import { ArrowRightUpIcon, CodeSquareIcon, MapPointIcon, SquareArrowRightUpIcon,
 import { GitHubIcon } from "@/components/brand-icons";
 import { TextureButton } from "@/components/ui/texture-button";
 import { CONTACT_LABELS, PORTFOLIO_ACCENTS, contactHref, type PublicPortfolio } from "@shared/portfolio";
+import type { MemberProgression } from "@shared/progression";
+import { ProgressionPanel } from "@/components/board/progression-panel";
 import type { PortfolioPost } from "@shared/blog";
 import "./portfolio.css";
 
@@ -26,7 +28,7 @@ export function PortfolioMarkdown({ children }: { children: string }) {
 const postDate = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 
 /** `posts` lists the owner's published blog posts; leave it out where there are none to show, as in the example. */
-export function PortfolioView({ portfolio, posts, preview = false }: { portfolio: PublicPortfolio; posts?: PortfolioPost[]; preview?: boolean }) {
+export function PortfolioView({ portfolio, posts, preview = false, progression }: { portfolio: PublicPortfolio; posts?: PortfolioPost[]; preview?: boolean; progression?: MemberProgression }) {
   const accent = PORTFOLIO_ACCENTS[portfolio.accent];
   const contacts = portfolio.contacts.filter((contact) => contact.visible && contact.value);
   const primary = contacts.find((contact) => contact.kind === portfolio.primaryContact);
@@ -75,6 +77,10 @@ export function PortfolioView({ portfolio, posts, preview = false }: { portfolio
               </div>
             </article>)}
           </div>
+        </section>}
+        {progression && <section className="pf-progress" aria-labelledby="pf-progress-title">
+          <div className="pf-section-heading"><h2 id="pf-progress-title">Milestones</h2><span>{Object.keys(progression.achievements).length} earned</span></div>
+          <ProgressionPanel progression={progression} />
         </section>}
         {!!posts?.length && <section className="pf-writing" aria-labelledby="pf-writing-title">
           <div className="pf-section-heading"><h2 id="pf-writing-title">Writing</h2><span>On the OpenCircle blog</span></div>
