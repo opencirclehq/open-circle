@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 
 const Tabs = TabsPrimitive.Root
 
+/** Tab rows stay on one line on every screen; when they don't fit, they slide sideways instead of wrapping. */
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
@@ -12,7 +13,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "relative inline-flex h-auto items-center justify-center gap-1 rounded-full bg-[hsl(var(--field-tone)/0.06)] p-1 text-t3",
+      "relative inline-flex h-auto min-w-0 max-w-full flex-nowrap items-center justify-start gap-1 overflow-x-auto overscroll-x-contain rounded-full bg-[hsl(var(--field-tone)/0.06)] p-1 text-t3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
       className
     )}
     {...props}
@@ -27,7 +28,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "relative inline-flex h-8 items-center justify-center whitespace-nowrap rounded-full px-3.5 text-[13px] sm:h-9 sm:px-4 sm:text-sm font-medium outline-none transition-colors duration-300 hover:text-t2 focus-visible:outline-none focus-visible:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground",
+      "relative inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3.5 text-[13px] sm:h-9 sm:px-4 sm:text-sm font-medium outline-none transition-colors duration-300 hover:text-t2 focus-visible:outline-none focus-visible:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=active]:text-foreground",
       className
     )}
     {...props}

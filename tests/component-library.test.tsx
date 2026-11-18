@@ -144,15 +144,28 @@ describe("component library page", () => {
     expect(within(nav).getByRole("link", { name: /Split Footer/ }).getAttribute("aria-current")).toBe("page");
 
     // userEvent provides the clipboard; read back exactly what was copied.
+    // One copy button: Markdown by default, code from its menu, which then becomes the default.
+    await user.click(screen.getByRole("button", { name: "Copy Markdown" }));
+    expect(await navigator.clipboard.readText()).toBe(itemMarkdown(footer));
+    await user.click(screen.getByRole("button", { name: "More copy options" }));
+    await user.click(screen.getByRole("menuitem", { name: "Copy code" }));
+    expect(await navigator.clipboard.readText()).toBe(footer.source);
+    expect(screen.queryByRole("menu")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Copy code" }));
     expect(await navigator.clipboard.readText()).toBe(footer.source);
-    await user.click(screen.getByRole("button", { name: "Copy as Markdown" }));
-    expect(await navigator.clipboard.readText()).toBe(itemMarkdown(footer));
 
     await user.click(screen.getByRole("tab", { name: "Code" }));
     expect(screen.getByLabelText("split-footer.tsx").textContent).toContain("export function SplitFooter");
     await user.click(within(nav).getByRole("link", { name: /Icon Folder/ }));
     expect(await screen.findByRole("heading", { level: 1, name: "Icon Folder" })).toBeTruthy();
+  });
+
+  it("shows Draw a Line on its own page and finds it by search", async () => {
+    expect(searchLibrary("train").map((item) => item.slug)).toEqual(["draw-a-line"]);
+    mount("/components/draw-a-line");
+    expect(screen.getByRole("heading", { level: 1, name: "Draw a Line" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Draw a line." })).toBeTruthy();
+    expect(findItem("draw-a-line")!.source).toContain("export function DrawALine");
   });
 
   it("explains a missing component", () => {

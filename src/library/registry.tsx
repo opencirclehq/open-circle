@@ -1,6 +1,8 @@
 import type { ComponentType } from "react";
 import { componentMarkdown } from "@shared/components";
 import { BoltIcon, CodeSquareIcon, GalleryIcon, PaletteIcon } from "@solar-icons/react/bold-duotone";
+import { DrawALine } from "./items/draw-a-line";
+import drawALineSource from "./items/draw-a-line.tsx?raw";
 import { IconFolder } from "./items/icon-folder";
 import iconFolderSource from "./items/icon-folder.tsx?raw";
 import { SplitFooter } from "./items/split-footer";
@@ -53,7 +55,7 @@ const tile = (node: React.ReactNode, background: string, label: string) => ({ no
 
 function FolderDemo({ theme }: { theme: CanvasTheme }) {
   return (
-    <div className="flex w-full justify-center p-6">
+    <div className="flex h-full w-full items-center justify-center p-6">
       <IconFolder
         title="Design kit"
         theme={theme}
@@ -66,6 +68,20 @@ function FolderDemo({ theme }: { theme: CanvasTheme }) {
         ]}
       />
     </div>
+  );
+}
+
+function TrainDemo({ theme }: { theme: CanvasTheme }) {
+  return (
+    <DrawALine
+      theme={theme}
+      cargo={[
+        tile(<PaletteIcon />, "linear-gradient(160deg,#a855f7,#6d28d9)", "Colour"),
+        tile(<GalleryIcon />, "linear-gradient(160deg,#38bdf8,#1d4ed8)", "Media"),
+        tile(<CodeSquareIcon />, "linear-gradient(160deg,#34d399,#047857)", "Code"),
+        tile(<BoltIcon />, "linear-gradient(160deg,#fbbf24,#ea580c)", "Motion"),
+      ].map(({ node, background, label }) => ({ icon: node, color: background, label }))}
+    />
   );
 }
 
@@ -111,6 +127,25 @@ export const LIBRARY: LibraryItem[] = [
     credit: "Adapted from the 21st.dev Icon Folder.",
     card: "tall",
     Demo: FolderDemo,
+  },
+  {
+    slug: "draw-a-line",
+    name: "Draw a Line",
+    description: "Move across the card to lay track. A little train follows it, puffing your app icons out as it goes, and it all fades once you stop.",
+    category: "Motion",
+    tags: ["train", "cursor", "canvas", "interactive"],
+    file: "draw-a-line.tsx",
+    source: drawALineSource,
+    dependencies: [],
+    usage: `import { DrawALine } from "./draw-a-line";
+
+<DrawALine
+  title={["Draw a", "line."]}
+  description="Lay track with your cursor."
+  cargo={[{ icon: <AppIcon />, color: "#6d28d9", label: "App" }]}
+/>`,
+    card: "wide",
+    Demo: TrainDemo,
   },
 ];
 
