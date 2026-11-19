@@ -6,6 +6,8 @@ export interface ComponentMeta {
   category: string;
   tags: string[];
   credit?: string;
+  /** Where the credit points, shown as a link beside it. */
+  creditUrl?: string;
 }
 
 export const COMPONENT_META: readonly ComponentMeta[] = [
@@ -31,6 +33,8 @@ export const COMPONENT_META: readonly ComponentMeta[] = [
     description: "A toy train set on a tilted table. Move across it to lay track; the train follows, climbs a bridge wherever you cross your own line and puffs your app icons onto the table. It all fades once you stop.",
     category: "Motion",
     tags: ["train", "2.5d", "canvas", "interactive"],
+    credit: "Inspired by the Draw a line section on tekcify.com.",
+    creditUrl: "https://tekcify.com/",
   },
   {
     slug: "scroll-deck",
@@ -38,6 +42,8 @@ export const COMPONENT_META: readonly ComponentMeta[] = [
     description: "A pinned, scroll-scrubbed hero: cards rise into a fan, scatter and tumble in 3D around a second headline that reveals word by word, then sweep back into a fan that turns on its pivot.",
     category: "Motion",
     tags: ["scroll", "cards", "3d", "hero"],
+    credit: "Motion rebuilt from the tekcify.com hero.",
+    creditUrl: "https://tekcify.com/",
   },
 ];
 

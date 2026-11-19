@@ -1,13 +1,15 @@
 import { apiHandler } from "../server/api-security.js";
-import { componentShareCard } from "../server/component-seo.js";
+import { componentScreenshot, componentShareCard } from "../server/component-seo.js";
 import { shareImage } from "../server/forum-image.js";
 import { HttpError } from "../server/http.js";
 
 export function GET(req: Request) {
   return apiHandler(req, async () => {
-    const preview = componentShareCard(new URL(req.url).searchParams.get("slug") ?? "");
+    const slug = new URL(req.url).searchParams.get("slug") ?? "";
+    const preview = componentShareCard(slug);
     if (!preview) throw new HttpError(404, "component_missing", "This component is unavailable.");
-    const bytes = await shareImage(preview.key, preview.card);
+    // A real picture of the component when one has been captured; the text card otherwise.
+    const bytes = await componentScreenshot(slug) ?? await shareImage(preview.key, preview.card);
     return new Response(new Uint8Array(bytes), { headers: {
       "content-type": "image/png", "content-length": String(bytes.length), "cache-control": "public, max-age=300",
       "content-disposition": "inline", "content-security-policy": "sandbox; default-src 'none'",

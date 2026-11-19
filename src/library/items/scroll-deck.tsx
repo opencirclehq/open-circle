@@ -377,7 +377,7 @@ export function ScrollDeck({
       ref={root}
       onPointerMove={onPointer}
       onPointerLeave={() => { pointer.current = { x: 0, y: 0 }; }}
-      className={`relative w-full ${contained ? "h-full min-h-[30rem] overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : ""} ${dark ? "bg-[#0d0e12] text-white" : "bg-[#efefed] text-neutral-950"} ${className}`}
+      className={`relative w-full ${contained ? "h-full min-h-[30rem] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : ""} ${dark ? "bg-[#0d0e12] text-white" : "bg-[#efefed] text-neutral-950"} ${className}`}
     >
       <style>{"@keyframes deck-flip{from{transform:rotateX(-90deg);opacity:0}to{transform:rotateX(0);opacity:1}}"}</style>
       <div ref={track} style={contained ? undefined : { height: `${(length + 1) * 100}svh` }}>

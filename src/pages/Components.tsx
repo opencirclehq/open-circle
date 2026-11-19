@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Widget4Icon } from "@solar-icons/react/bold-duotone";
 import { AddIcon, AltArrowLeftIcon, AltArrowRightIcon, CloseCircleIcon, FullScreenIcon, MagnifierIcon, MoonIcon, RestartIcon, Sun2Icon } from "@solar-icons/react/linear";
@@ -19,15 +19,12 @@ import { findItem, itemMarkdown, LIBRARY, searchLibrary, type CanvasTheme, type 
 import { cn } from "@/lib/utils";
 
 const SPRING = { type: "spring", stiffness: 380, damping: 34 } as const;
-/** Bento shapes on the 4-column grid (2 columns on tablets, stacked on phones). */
-const SHAPE: Record<LibraryItem["card"], string> = {
-  big: "sm:col-span-2 sm:row-span-2",
-  wide: "sm:col-span-2",
-  tall: "sm:row-span-2",
+/** Columns each tile spans: 6 on wide screens, 2 on tablets, stacked on phones. Heights follow each component's own shape. */
+const SPAN: Record<LibraryItem["card"]["span"], string> = {
+  6: "sm:col-span-2 lg:col-span-6",
+  4: "sm:col-span-2 lg:col-span-4",
+  2: "lg:col-span-2",
 };
-const CELLS: Record<LibraryItem["card"], number> = { big: 4, wide: 2, tall: 2 };
-/** Grey 1×1 cards that, with the Submit card, fill the last rows of the wide-screen bento. */
-const PLACEHOLDERS = (4 - ((LIBRARY.reduce((sum, item) => sum + CELLS[item.card], 0) + 1) % 4)) % 4;
 const canvasBackground = (canvas: CanvasTheme) => ({
   backgroundImage: `radial-gradient(${canvas === "dark" ? "rgba(255,255,255,.06)" : "rgba(15,23,42,.08)"} 1px, transparent 1px)`,
   backgroundSize: "18px 18px",
@@ -36,6 +33,9 @@ const canvasBackground = (canvas: CanvasTheme) => ({
 export default function Components() {
   usePageMeta();
   const { slug } = useParams();
+  const [params] = useSearchParams();
+  // The share-image capture opens /components/<slug>?og=1 and photographs just the component.
+  if (slug && params.has("og")) return <OgFrame slug={slug} />;
   return (
     <div className="relative min-h-dvh overflow-x-clip">
       <div className="app-backdrop" aria-hidden />
@@ -79,24 +79,17 @@ function Library() {
           <MetalButton type="button" className="h-11 w-auto" innerClassName="px-5" onClick={() => setSubmitting(true)}>Submit a component</MetalButton>
         </EmptyState>
       ) : (
-        <ul aria-label="Components" className="grid grid-flow-row-dense auto-rows-[16rem] grid-cols-1 gap-3 sm:auto-rows-[12.5rem] sm:grid-cols-2 lg:grid-cols-4">
+        <ul aria-label="Components" className="grid grid-flow-row-dense grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <AnimatePresence initial={false}>
             {results.map((item) => (
               <motion.li key={item.slug} layout="position" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={SPRING}
-                className={SHAPE[item.card]}>
+                className={SPAN[item.card.span]}>
                 <ComponentCard item={item} />
               </motion.li>
             ))}
-            {!searching && Array.from({ length: PLACEHOLDERS }, (_, index) => (
-              <li key={`placeholder-${index}`} aria-hidden className="hidden flex-col justify-end rounded-[28px] bg-foreground/[0.025] p-5 lg:flex">
-                <span className="mb-auto flex size-10 items-center justify-center rounded-2xl bg-foreground/[0.04] text-t4"><Widget4Icon className="size-5" /></span>
-                <span className="h-2.5 w-24 rounded-full bg-foreground/[0.06]" />
-                <span className="mt-2 h-2 w-36 rounded-full bg-foreground/[0.04]" />
-              </li>
-            ))}
             {!searching && (
-              <li className="sm:row-span-2 lg:row-span-1">
-                <button type="button" onClick={() => setSubmitting(true)} className="group flex h-full w-full flex-col items-center justify-center gap-3 rounded-[28px] bg-foreground/[0.025] p-5 text-center transition-colors hover:bg-foreground/[0.05]">
+              <li className="lg:col-span-2">
+                <button type="button" onClick={() => setSubmitting(true)} className="group flex h-full min-h-[12rem] w-full flex-col items-center justify-center gap-3 rounded-[28px] bg-foreground/[0.025] p-5 text-center transition-colors hover:bg-foreground/[0.05] sm:min-h-[20rem]">
                   <span className="flex size-12 items-center justify-center rounded-full bg-foreground/[0.06] text-t2 transition-transform group-hover:scale-105"><AddIcon className="size-5" aria-hidden /></span>
                   <span className="text-sm font-medium">Submit yours</span>
                   <span className="max-w-[16rem] text-xs text-t3">Share a component with the circle.</span>
@@ -111,31 +104,35 @@ function Library() {
   );
 }
 
+/**
+ * A live tile: the component runs and responds right on the grid (draw track, hover the folder, scroll
+ * the deck). Its preview keeps the component's own shape; the name row underneath opens its page.
+ */
 function ComponentCard({ item }: { item: LibraryItem }) {
   const thumb = item.thumbWidth ?? item.designWidth;
+  const aspect = item.card.aspect;
   return (
-    // The link stretches over the card from the title, so the demo's own links never sit inside it.
-    <article className="surface group relative flex h-full flex-col rounded-[28px] p-2 transition-transform duration-300 focus-within:-translate-y-0.5 hover:-translate-y-0.5">
-      {/* The preview sits inset and rounded; its tags float in the top-right corner. */}
-      {/* The preview grows to fill the card, leaving only the name beneath it. */}
-      <div className="relative min-h-0 flex-1 overflow-hidden rounded-[22px] bg-[#0b0d12]">
+    <article className="surface flex h-full flex-col rounded-[28px] p-2">
+      <div className={cn("relative overflow-hidden rounded-[22px] bg-[#0b0d12]", !aspect && "min-h-[20rem] flex-1")} style={aspect ? { aspectRatio: aspect } : undefined}>
         {thumb
-          ? <ScaledPreview width={thumb} className="!absolute inset-0"><item.Demo theme="dark" /></ScaledPreview>
-          : <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden inert><item.Demo theme="dark" /></div>}
-        <div className="absolute right-3 top-3 flex max-w-[70%] flex-wrap justify-end gap-1">
+          ? <ScaledPreview width={thumb} height={item.designHeight} interactive fill className="!absolute inset-0"><item.Demo theme="dark" /></ScaledPreview>
+          : <div className="absolute inset-0 flex items-center justify-center"><item.Demo theme="dark" /></div>}
+        <div className="pointer-events-none absolute right-3 top-3 z-20 flex max-w-[70%] flex-wrap justify-end gap-1">
           {[item.category, ...item.tags.slice(0, 2)].map((tag) => (
             <span key={tag} className="rounded-full bg-black/45 px-2.5 py-1 text-[11px] text-white/85 backdrop-blur-md">{tag}</span>
           ))}
         </div>
       </div>
-      <div className="shrink-0 px-3 pb-2 pt-3">
-        <Link
-          to={`/components/${item.slug}`}
-          className="block truncate font-medium tracking-tight [outline-style:none] after:absolute after:inset-0 after:z-10 after:rounded-[28px] focus-visible:after:ring-2 focus-visible:after:ring-foreground/40"
-        >
-          {item.name}
-        </Link>
-      </div>
+      <Link
+        to={`/components/${item.slug}`}
+        aria-label={item.name}
+        className="group mt-1 flex min-h-11 shrink-0 items-center justify-between gap-3 rounded-[20px] px-3 py-2 transition-colors [outline-style:none] hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-foreground/40"
+      >
+        <span className="truncate font-medium tracking-tight">{item.name}</span>
+        <span className="flex shrink-0 items-center gap-1 text-xs text-t3 transition-colors group-hover:text-foreground" aria-hidden>
+          Open<AltArrowRightIcon className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </Link>
     </article>
   );
 }
@@ -181,6 +178,13 @@ function Detail({ slug }: { slug: string }) {
           </Link>
           <h1 className="text-2xl font-medium tracking-[-0.03em] sm:text-3xl">{item.name}</h1>
           <p className="max-w-xl text-sm leading-relaxed text-t3">{item.description}</p>
+          {item.credit && (
+            <p className="text-xs text-t4">
+              {item.creditUrl
+                ? <a href={item.creditUrl} target="_blank" rel="noreferrer" className="underline decoration-foreground/20 underline-offset-4 transition-colors hover:text-foreground">{item.credit}</a>
+                : item.credit}
+            </p>
+          )}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {[item.category, ...item.tags].map((tag) => <span key={tag} className="rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[11px] text-t2">{tag}</span>)}
           </div>
@@ -308,6 +312,74 @@ function FullscreenPreview({ item, canvas, onCanvas, onClose }: { item: LibraryI
       </div>
     </div>,
     document.body,
+  );
+}
+
+/**
+ * One component alone on a 1200 × 630 frame, for its share image. It plays the component's
+ * `og` hints (trace a pointer path, scroll its scroller), waits to settle, then sets
+ * `window.__ogReady` for scripts/capture-component-og.mjs to take the shot.
+ */
+function OgFrame({ slug }: { slug: string }) {
+  const item = findItem(slug);
+  const frame = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = frame.current;
+    if (!item || !root) return;
+    let cancelled = false;
+    const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    void (async () => {
+      await document.fonts?.ready;
+      await wait(400);
+      const og = item.og ?? {};
+      if (og.scroll !== undefined) {
+        const scroller = [...root.querySelectorAll<HTMLElement>("*")].find((element) => element.scrollHeight > element.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(element).overflowY));
+        if (scroller) scroller.scrollTop = og.scroll * (scroller.scrollHeight - scroller.clientHeight);
+      }
+      const path = og.pointer ?? [];
+      if (path.length > 1) {
+        const rect = root.getBoundingClientRect();
+        const duration = og.duration ?? 2000;
+        const start = performance.now();
+        await new Promise<void>((done) => {
+          const step = () => {
+            const t = Math.min(1, (performance.now() - start) / duration);
+            const along = t * (path.length - 1);
+            const index = Math.min(path.length - 2, Math.floor(along));
+            const f = along - index;
+            const x = rect.left + rect.width * (path[index][0] + (path[index + 1][0] - path[index][0]) * f);
+            const y = rect.top + rect.height * (path[index][1] + (path[index + 1][1] - path[index][1]) * f);
+            document.elementFromPoint?.(x, y)?.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: x, clientY: y, pointerType: "mouse" }));
+            if (t < 1 && !cancelled) requestAnimationFrame(step);
+            else done();
+          };
+          requestAnimationFrame(step);
+        });
+      }
+      await wait(og.settle ?? 1800);
+      if (cancelled) return;
+      root.dataset.ready = "true";
+      (window as Window & { __ogReady?: boolean }).__ogReady = true;
+    })();
+    return () => { cancelled = true; };
+  }, [item]);
+
+  if (!item) return null;
+  const scaled = item.designWidth && !item.designHeight;
+  return (
+    <div ref={frame} className="relative h-[630px] w-[1200px] overflow-hidden bg-[#0b0d12] text-white" style={canvasBackground("dark")}>
+      <div className="absolute inset-0 flex items-center justify-center">
+        {scaled
+          ? <div className="w-full px-10"><ScaledPreview width={item.designWidth!} interactive className="w-full overflow-hidden rounded-[24px]"><item.Demo theme="dark" /></ScaledPreview></div>
+          : <div className="h-full w-full"><item.Demo theme="dark" fullscreen /></div>}
+      </div>
+      <div className="pointer-events-none absolute bottom-6 left-6 z-50 flex items-center gap-3 rounded-full bg-black/60 py-2 pl-2 pr-5 backdrop-blur-md">
+        <span className="flex size-9 items-center justify-center rounded-full bg-white/10"><Widget4Icon className="size-5 text-white/80" /></span>
+        <span className="text-[15px] font-medium tracking-tight">{item.name}</span>
+        <span className="text-[13px] text-white/55">OpenCircle Components</span>
+      </div>
+    </div>
   );
 }
 
