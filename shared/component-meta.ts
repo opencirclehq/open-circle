@@ -32,6 +32,13 @@ export const COMPONENT_META: readonly ComponentMeta[] = [
     category: "Motion",
     tags: ["train", "2.5d", "canvas", "interactive"],
   },
+  {
+    slug: "scroll-deck",
+    name: "Scroll Deck",
+    description: "A pinned, scroll-scrubbed hero: cards rise into a fan, scatter and tumble in 3D around a second headline that reveals word by word, then sweep back into a fan that turns on its pivot.",
+    category: "Motion",
+    tags: ["scroll", "cards", "3d", "hero"],
+  },
 ];
 
 export function componentMeta(slug: string | undefined): ComponentMeta | undefined {

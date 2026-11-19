@@ -7,7 +7,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
  * height to fill; with `interactive` it stays usable and the frame takes the
  * scaled height of its content.
  */
-export function ScaledPreview({ width, children, className, interactive = false }: { width: number; children: ReactNode; className?: string; interactive?: boolean }) {
+export function ScaledPreview({ width, height: designHeight, children, className, interactive = false }: { width: number; height?: number; children: ReactNode; className?: string; interactive?: boolean }) {
   const frame = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.4);
@@ -22,7 +22,8 @@ export function ScaledPreview({ width, children, className, interactive = false 
       const next = Math.min(1, element.clientWidth / width);
       if (next <= 0) return;
       setScale(next);
-      if (interactive) setHeight(inner.offsetHeight * next);
+      if (designHeight) setHeight(designHeight * next);
+      else if (interactive) setHeight(inner.offsetHeight * next);
       else setFrameHeight(element.clientHeight / next);
     };
     update();
@@ -30,16 +31,16 @@ export function ScaledPreview({ width, children, className, interactive = false 
     observer.observe(element);
     observer.observe(inner);
     return () => observer.disconnect();
-  }, [width, interactive]);
+  }, [width, designHeight, interactive]);
 
   return (
     <div
       ref={frame}
       className={`relative overflow-hidden ${interactive ? "" : "pointer-events-none"} ${className ?? ""}`}
-      style={interactive ? { height } : undefined}
+      style={interactive || designHeight ? { height } : undefined}
       {...(interactive ? {} : { "aria-hidden": true, inert: true })}
     >
-      <div ref={content} className="absolute left-0 top-0 origin-top-left" style={{ width, height: interactive ? undefined : frameHeight, transform: `scale(${scale})` }}>
+      <div ref={content} className="absolute left-0 top-0 origin-top-left" style={{ width, height: designHeight ?? (interactive ? undefined : frameHeight), transform: `scale(${scale})` }}>
         {children}
       </div>
     </div>

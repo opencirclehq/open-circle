@@ -1,10 +1,12 @@
 import type { ComponentType } from "react";
 import { componentMarkdown } from "@shared/components";
 import { componentMeta, type ComponentMeta } from "@shared/component-meta";
-import { BoltIcon, CodeSquareIcon, GalleryIcon, PaletteIcon } from "@solar-icons/react/bold-duotone";
+import { BoltIcon, ChartSquareIcon, ChatRoundDotsIcon, CodeSquareIcon, GalleryIcon, MapPointIcon, NotebookIcon, PaletteIcon, WalletIcon } from "@solar-icons/react/bold-duotone";
 import { DrawALine } from "./items/draw-a-line";
 import drawALineSource from "./items/draw-a-line.tsx?raw";
 import { IconFolder } from "./items/icon-folder";
+import { ScrollDeck } from "./items/scroll-deck";
+import scrollDeckSource from "./items/scroll-deck.tsx?raw";
 import iconFolderSource from "./items/icon-folder.tsx?raw";
 import { SplitFooter } from "./items/split-footer";
 import splitFooterSource from "./items/split-footer.tsx?raw";
@@ -19,12 +21,16 @@ export interface LibraryItem extends ComponentMeta {
   /** Packages beyond React and Tailwind CSS. */
   dependencies: string[];
   usage: string;
-  /** Bento card size on the library grid. */
-  card: "wide" | "tall";
+  /** Bento shape on the library grid: big is 2×2, wide 2×1, tall 1×2. */
+  card: "big" | "wide" | "tall";
   /** Width the component is laid out at before scaling down to fit, for full-width components. */
   designWidth?: number;
-  /** Live demo with sample props; receives the preview canvas theme. */
-  Demo: ComponentType<{ theme: CanvasTheme }>;
+  /** With designWidth: a fixed screen height, so the preview is a whole screen (a hero) scaled to fit. */
+  designHeight?: number;
+  /** Width the grid thumbnail is drawn at before scaling into its card. */
+  thumbWidth?: number;
+  /** Live demo with sample props; receives the canvas theme, and whether it fills the screen. */
+  Demo: ComponentType<{ theme: CanvasTheme; fullscreen?: boolean }>;
 }
 
 function FooterDemo() {
@@ -80,6 +86,28 @@ function TrainDemo({ theme }: { theme: CanvasTheme }) {
   );
 }
 
+const DECK_CARDS = [
+  { name: "Harbor", caption: "harbor.app", icon: <ChatRoundDotsIcon />, colors: ["#5f8f88", "#3c6660"] },
+  { name: "Ledger", caption: "ledger.money", icon: <WalletIcon />, colors: ["#2a2c3c", "#11121a"] },
+  { name: "Plume", caption: "plume.studio", icon: <PaletteIcon />, colors: ["#8b5cf6", "#4c1d95"] },
+  { name: "Fieldnote", caption: "fieldnote.io", icon: <NotebookIcon />, colors: ["#3a3a3f", "#1a1414"] },
+  { name: "Orbit", caption: "orbit.dev", icon: <ChartSquareIcon />, colors: ["#1e3a8a", "#0b1640"] },
+  { name: "Wayfare", caption: "wayfare.travel", icon: <MapPointIcon />, colors: ["#c2734f", "#7a3a22"] },
+  { name: "Quill", caption: "quill.to", icon: <CodeSquareIcon />, colors: ["#ea7a45", "#b4451c"] },
+] satisfies { name: string; caption: string; icon: React.ReactNode; colors: [string, string] }[];
+
+function DeckDemo({ theme }: { theme: CanvasTheme }) {
+  return (
+    <ScrollDeck
+      theme={theme}
+      cards={DECK_CARDS}
+      intro="We build apps."
+      headline={["~From~ a real problem", "~to~ an app people ~actually~ use."]}
+      subtitle="A small studio with a few apps live and more on the way."
+    />
+  );
+}
+
 /** The library's wording lives in shared/component-meta so the server can describe a page without these demos. */
 export const LIBRARY: LibraryItem[] = [
   {
@@ -126,8 +154,28 @@ export const LIBRARY: LibraryItem[] = [
   description="Lay track with your cursor."
   cargo={[{ icon: <AppIcon />, color: "#6d28d9", label: "App" }]}
 />`,
-    card: "wide",
+    card: "big",
+    thumbWidth: 900,
     Demo: TrainDemo,
+  },
+  {
+    ...componentMeta("scroll-deck")!,
+    file: "scroll-deck.tsx",
+    source: scrollDeckSource,
+    dependencies: [],
+    usage: `import { ScrollDeck } from "./scroll-deck";
+
+<ScrollDeck
+  scroll="page"
+  intro="We build apps."
+  headline={["~From~ a real problem", "~to~ an app people ~actually~ use."]}
+  cards={[{ name: "Harbor", caption: "harbor.app", icon: <ChatIcon />, colors: ["#5f8f88", "#3c6660"] }]}
+/>`,
+    card: "big",
+    designWidth: 1440,
+    designHeight: 900,
+    thumbWidth: 1200,
+    Demo: DeckDemo,
   },
 ];
 
