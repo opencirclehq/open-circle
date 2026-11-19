@@ -16,6 +16,7 @@
     "build:server": "vite build --ssr server/node-server.ts --outDir dist-server --emptyOutDir",
     "start": "node dist-server/node-server.js",
     "db:migrate": "tsx scripts/migrate.ts",
+    "og:components": "tsx scripts/capture-component-og.ts",
     "test:postgres": "tsx scripts/test-postgres.ts"
   },
   "dependencies": {

@@ -188,6 +188,38 @@ describe("component library page", () => {
     expect(screen.queryByRole("dialog", { name: "Scroll Deck, full screen" })).toBeNull();
   });
 
+  it("lays the grid out without placeholder tiles, ending in a Submit strip", () => {
+    mount("/components");
+    const grid = screen.getByRole("list", { name: "Components" });
+    expect(grid.querySelectorAll("li[aria-hidden]")).toHaveLength(0);
+    expect(within(grid).getAllByRole("listitem").at(-1)!.textContent).toContain("Submit yours");
+  });
+
+  it("renders a bare share-image frame for the capture script", () => {
+    mount("/components/draw-a-line?og=1");
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "Draw a line." })).toBeTruthy();
+    expect(screen.getByText("OpenCircle Components")).toBeTruthy();
+  });
+
+  it("runs the components live on the grid and opens each from its name row", () => {
+    mount("/components");
+    const grid = screen.getByRole("list", { name: "Components" });
+    expect(grid.querySelector("[inert]")).toBeNull();
+    expect(within(grid).getByRole("heading", { level: 2, name: "Draw a line." })).toBeTruthy();
+    expect(within(grid).getByRole("link", { name: "Scroll Deck" }).getAttribute("href")).toBe("/components/scroll-deck");
+  });
+
+  it("credits tekcify.com on the train and the card deck", () => {
+    for (const slug of ["draw-a-line", "scroll-deck"]) {
+      const item = findItem(slug)!;
+      expect(item.credit).toMatch(/tekcify\.com/);
+      expect(itemMarkdown(item)).toContain(item.credit!);
+    }
+    mount("/components/scroll-deck");
+    expect(screen.getByRole("link", { name: /tekcify\.com hero/ }).getAttribute("href")).toBe("https://tekcify.com/");
+  });
+
   it("explains a missing component", () => {
     mount("/components/does-not-exist");
     expect(screen.getByText("This component isn't here")).toBeTruthy();

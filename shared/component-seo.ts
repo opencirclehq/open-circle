@@ -1,11 +1,13 @@
 import { BRAND_NAME, DEFAULT_SITE_URL } from "./brand.js";
 import type { ComponentMeta } from "./component-meta.js";
+import { COMPONENT_SCREENSHOTS } from "./component-og.js";
 import { shareImageVersion } from "./share-image.js";
 import { seoDocument, type SeoDocument } from "./seo.js";
 
-/** Changes with the card's wording, so an edited description is not served from a cached image. */
-export function componentImageVersion(component: Pick<ComponentMeta, "name" | "description" | "category" | "tags">): string {
-  return shareImageVersion(component.name, component.description, component.category, ...component.tags);
+/** Changes with the card's wording or a new screenshot, so neither is served from a cached image. */
+export function componentImageVersion(component: Pick<ComponentMeta, "name" | "description" | "category" | "tags"> & { slug?: string }): string {
+  const screenshot = component.slug ? COMPONENT_SCREENSHOTS[component.slug] : undefined;
+  return shareImageVersion(component.name, component.description, component.category, ...component.tags, ...(screenshot ? [screenshot] : []));
 }
 
 export function componentSeoDocument(component: ComponentMeta, origin = DEFAULT_SITE_URL): SeoDocument {

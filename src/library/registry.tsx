@@ -21,14 +21,23 @@ export interface LibraryItem extends ComponentMeta {
   /** Packages beyond React and Tailwind CSS. */
   dependencies: string[];
   usage: string;
-  /** Bento shape on the library grid: big is 2×2, wide 2×1, tall 1×2. */
-  card: "big" | "wide" | "tall";
+  /**
+   * Its tile on the 6-column library grid: how many columns it spans (6, 4 or 2), and the preview's
+   * natural width ÷ height. Tiles without an aspect take their row's height, so pair them with one that has it.
+   */
+  card: { span: 2 | 4 | 6; aspect?: number };
   /** Width the component is laid out at before scaling down to fit, for full-width components. */
   designWidth?: number;
   /** With designWidth: a fixed screen height, so the preview is a whole screen (a hero) scaled to fit. */
   designHeight?: number;
   /** Width the grid thumbnail is drawn at before scaling into its card. */
   thumbWidth?: number;
+  /**
+   * How the share-image capture shows it off (scripts/capture-component-og.mjs).
+   * `pointer`: a path in fractions of the frame, traced with the mouse over `duration` ms.
+   * `scroll`: scroll the component's own scroller to this fraction. `settle`: ms to wait before the shot.
+   */
+  og?: { pointer?: [number, number][]; duration?: number; scroll?: number; settle?: number };
   /** Live demo with sample props; receives the canvas theme, and whether it fills the screen. */
   Demo: ComponentType<{ theme: CanvasTheme; fullscreen?: boolean }>;
 }
@@ -36,6 +45,7 @@ export interface LibraryItem extends ComponentMeta {
 function FooterDemo() {
   return (
     <SplitFooter
+      className="h-full"
       brand="OpenCircle"
       tagline={["Paste your username.", "Take your place."]}
       groups={[
@@ -123,7 +133,7 @@ export const LIBRARY: LibraryItem[] = [
   groups={[{ title: "Product", links: [{ label: "Pricing", href: "/pricing" }] }]}
   socials={[{ label: "Acme on X", href: "https://x.com/acme", icon: "x" }]}
 />`,
-    card: "wide",
+    card: { span: 6, aspect: 1200 / 430 },
     designWidth: 1200,
     Demo: FooterDemo,
   },
@@ -139,7 +149,7 @@ export const LIBRARY: LibraryItem[] = [
   theme="dark"
   icons={[{ src: "/figma.png", label: "Figma" }, { src: "/linear.png", label: "Linear" }]}
 />`,
-    card: "tall",
+    card: { span: 2 },
     Demo: FolderDemo,
   },
   {
@@ -154,8 +164,9 @@ export const LIBRARY: LibraryItem[] = [
   description="Lay track with your cursor."
   cargo={[{ icon: <AppIcon />, color: "#6d28d9", label: "App" }]}
 />`,
-    card: "big",
+    card: { span: 4, aspect: 16 / 9 },
     thumbWidth: 900,
+    og: { pointer: [[0.12, 0.78], [0.3, 0.86], [0.5, 0.7], [0.62, 0.48], [0.8, 0.58], [0.9, 0.82]], duration: 2600, settle: 650 },
     Demo: TrainDemo,
   },
   {
@@ -171,10 +182,11 @@ export const LIBRARY: LibraryItem[] = [
   headline={["~From~ a real problem", "~to~ an app people ~actually~ use."]}
   cards={[{ name: "Harbor", caption: "harbor.app", icon: <ChatIcon />, colors: ["#5f8f88", "#3c6660"] }]}
 />`,
-    card: "big",
+    card: { span: 4, aspect: 16 / 10 },
     designWidth: 1440,
     designHeight: 900,
     thumbWidth: 1200,
+    og: { scroll: 0.42, settle: 2600 },
     Demo: DeckDemo,
   },
 ];
