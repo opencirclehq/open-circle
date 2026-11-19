@@ -120,9 +120,18 @@ async function main() {
     writeFileSync(manifest, next);
     console.log(`Updated shared/component-og.ts for ${slugs.length} component${slugs.length === 1 ? "" : "s"}.`);
   } finally {
-    chrome?.kill();
+    // Let Chrome finish shutting down before removing its profile; it keeps writing to it as it exits.
+    if (chrome && chrome.exitCode === null) {
+      const exited = new Promise((resolve) => chrome!.once("exit", resolve));
+      chrome.kill();
+      await Promise.race([exited, sleep(5000)]);
+    }
     await server.close();
-    rmSync(profile, { recursive: true, force: true });
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    } catch {
+      console.warn(`Couldn't remove the temporary Chrome profile at ${profile}; it's safe to delete.`);
+    }
   }
 }
 
