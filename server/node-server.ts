@@ -55,7 +55,12 @@ import * as forumImage from "../api/forum-image.js";
 import * as blog from "../api/blog.js";
 import * as blogAdmin from "../api/blog-admin.js";
 import * as blogImage from "../api/blog-image.js";
+import * as componentImage from "../api/component-image.js";
+import * as homeImage from "../api/home-image.js";
+import * as pageImage from "../api/page-image.js";
 import { blogPageSeoDocument, blogSitemapEntries } from "./blog-seo.js";
+import { componentPageSeoDocument } from "./component-seo.js";
+import { homeSeoDocument } from "./home-seo.js";
 import { sitemapXml } from "../shared/seo.js";
 
 type Handler = (req: Request) => Promise<Response>;
@@ -84,6 +89,9 @@ const routes: Record<string, Record<string, Handler | undefined>> = {
   community: community as Record<string, Handler>,
   tools: tools as Record<string, Handler>,
   components: components as Record<string, Handler>,
+  "component-image": componentImage as Record<string, Handler>,
+  "home-image": homeImage as Record<string, Handler>,
+  "page-image": pageImage as Record<string, Handler>,
   vote: vote as Record<string, Handler>,
   "repository-stars": repositoryStars as Record<string, Handler>,
   board: board as Record<string, Handler>,
@@ -218,7 +226,7 @@ export function createAppServer(distDirectory = path.resolve(process.cwd(), "dis
       const raw = readFileSync(INDEX, "utf8");
       const origin = originFromHtml(raw, process.env.SITE_URL || DEFAULT_SITE_URL);
       let document = seoDocument(pathname, origin);
-      try { document = await communitySeoDocument(pathname, origin) ?? await eventSeoDocument(pathname, origin) ?? await blogPageSeoDocument(pathname, origin) ?? document; }
+      try { document = await communitySeoDocument(pathname, origin) ?? await eventSeoDocument(pathname, origin) ?? await blogPageSeoDocument(pathname, origin) ?? componentPageSeoDocument(pathname, origin) ?? await homeSeoDocument(pathname, origin) ?? document; }
       catch (error) {
         console.error(error);
         document = { ...document, status: 503 };

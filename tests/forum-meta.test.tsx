@@ -38,8 +38,8 @@ it("uses the published public preview for client navigation and resets the image
   expect(fetcher).toHaveBeenCalledWith(`/api/forum-preview?id=${first}`, expect.objectContaining({ credentials: "omit", cache: "no-store", signal: expect.any(AbortSignal) }));
   await userEvent.setup().click(screen.getByRole("link", { name: "Tools" }));
   expect(document.title).toBe("Developer tools · OpenCircle");
-  expect(meta("og:image")).toBe("https://opencircle.cc/og.png");
-  expect(meta("twitter:image")).toBe("https://opencircle.cc/og.png");
+  expect(meta("og:image")).toMatch(/^https:\/\/opencircle\.cc\/api\/page-image\?path=%2Ftools&v=/);
+  expect(meta("twitter:image")).toBe(meta("og:image"));
 });
 
 it("preserves server-rendered thread metadata while fetching and ignores a late response after navigation", async () => {
@@ -51,7 +51,7 @@ it("preserves server-rendered thread metadata while fetching and ignores a late 
   await userEvent.setup().click(screen.getByRole("link", { name: "Community" }));
   await act(async () => { finish(Response.json(preview)); });
   expect(document.title).toBe("Community · OpenCircle");
-  expect(meta("og:image")).toBe("https://opencircle.cc/og.png");
+  expect(meta("og:image")).toBe("https://opencircle.cc/api/home-image");
 });
 
 it("preserves existing event titles and covers when the event page loads", () => {

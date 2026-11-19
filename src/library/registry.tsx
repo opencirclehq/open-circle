@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { componentMarkdown } from "@shared/components";
+import { componentMeta, type ComponentMeta } from "@shared/component-meta";
 import { BoltIcon, ChartSquareIcon, ChatRoundDotsIcon, CodeSquareIcon, GalleryIcon, MapPointIcon, NotebookIcon, PaletteIcon, WalletIcon } from "@solar-icons/react/bold-duotone";
 import { DrawALine } from "./items/draw-a-line";
 import drawALineSource from "./items/draw-a-line.tsx?raw";
@@ -12,12 +13,7 @@ import splitFooterSource from "./items/split-footer.tsx?raw";
 
 export type CanvasTheme = "dark" | "light";
 
-export interface LibraryItem {
-  slug: string;
-  name: string;
-  description: string;
-  category: string;
-  tags: string[];
+export interface LibraryItem extends ComponentMeta {
   /** File name the source is copied as. */
   file: string;
   /** The exact source rendered in the preview. */
@@ -25,7 +21,6 @@ export interface LibraryItem {
   /** Packages beyond React and Tailwind CSS. */
   dependencies: string[];
   usage: string;
-  credit?: string;
   /** Bento shape on the library grid: big is 2×2, wide 2×1, tall 1×2. */
   card: "big" | "wide" | "tall";
   /** Width the component is laid out at before scaling down to fit, for full-width components. */
@@ -113,13 +108,10 @@ function DeckDemo({ theme }: { theme: CanvasTheme }) {
   );
 }
 
+/** The library's wording lives in shared/component-meta so the server can describe a page without these demos. */
 export const LIBRARY: LibraryItem[] = [
   {
-    slug: "split-footer",
-    name: "Split Footer",
-    description: "A dark brand panel lit by drifting ASCII light beside a white link panel, with the wordmark fading up from the bottom.",
-    category: "Layout",
-    tags: ["footer", "ascii", "canvas", "landing"],
+    ...componentMeta("split-footer")!,
     file: "split-footer.tsx",
     source: splitFooterSource,
     dependencies: [],
@@ -131,17 +123,12 @@ export const LIBRARY: LibraryItem[] = [
   groups={[{ title: "Product", links: [{ label: "Pricing", href: "/pricing" }] }]}
   socials={[{ label: "Acme on X", href: "https://x.com/acme", icon: "x" }]}
 />`,
-    credit: "Adapted from the Dailo landing footer.",
     card: "wide",
     designWidth: 1200,
     Demo: FooterDemo,
   },
   {
-    slug: "icon-folder",
-    name: "Icon Folder",
-    description: "A glass folder with app icons fanned out of it. Pops in on view; hover, tap or Enter spreads the icons wider.",
-    category: "Display",
-    tags: ["folder", "icons", "glass", "hover"],
+    ...componentMeta("icon-folder")!,
     file: "icon-folder.tsx",
     source: iconFolderSource,
     dependencies: [],
@@ -152,16 +139,11 @@ export const LIBRARY: LibraryItem[] = [
   theme="dark"
   icons={[{ src: "/figma.png", label: "Figma" }, { src: "/linear.png", label: "Linear" }]}
 />`,
-    credit: "Adapted from the 21st.dev Icon Folder.",
     card: "tall",
     Demo: FolderDemo,
   },
   {
-    slug: "draw-a-line",
-    name: "Draw a Line",
-    description: "A toy train set on a tilted table. Move across it to lay track; the train follows, climbs a bridge wherever you cross your own line and puffs your app icons onto the table. It all fades once you stop.",
-    category: "Motion",
-    tags: ["train", "2.5d", "canvas", "interactive"],
+    ...componentMeta("draw-a-line")!,
     file: "draw-a-line.tsx",
     source: drawALineSource,
     dependencies: [],
@@ -177,11 +159,7 @@ export const LIBRARY: LibraryItem[] = [
     Demo: TrainDemo,
   },
   {
-    slug: "scroll-deck",
-    name: "Scroll Deck",
-    description: "A pinned, scroll-scrubbed hero: cards rise into a fan, scatter and tumble in 3D around a second headline that reveals word by word, then sweep back into a fan that turns on its pivot.",
-    category: "Motion",
-    tags: ["scroll", "cards", "3d", "hero"],
+    ...componentMeta("scroll-deck")!,
     file: "scroll-deck.tsx",
     source: scrollDeckSource,
     dependencies: [],
