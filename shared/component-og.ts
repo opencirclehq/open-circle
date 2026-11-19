@@ -3,4 +3,9 @@
  * A short hash of each component's captured share image in public/og/components/<slug>.png.
  * A component missing here falls back to the text share card.
  */
-export const COMPONENT_SCREENSHOTS: Readonly<Record<string, string>> = {};
+export const COMPONENT_SCREENSHOTS: Readonly<Record<string, string>> = {
+  "draw-a-line": "5f6f7c73f72e",
+  "icon-folder": "80795b77f245",
+  "scroll-deck": "ac2dc0bb8e66",
+  "split-footer": "ec3484432bb0",
+};
